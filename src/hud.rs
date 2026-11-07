@@ -393,7 +393,7 @@ mod tests {
     #[test]
     fn screens_draw() {
         for (arena, teams) in [("foundry", false), ("hollow", true), ("lattice", false)] {
-            let settings = Settings { arena, teams, bots: 5, level: Level::Hard, ship: Kind::Lance };
+            let settings = Settings { name: String::new(), arena, teams, bots: 5, level: Level::Hard, ship: Kind::Lance };
             let mut g = Game::new(Start::Demo, settings, true);
             let (mut input, mut audio) = (Input::new(true), Audio::new(true));
             for _ in 0..600 {

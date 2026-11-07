@@ -40,6 +40,7 @@ In the game, H shows the controls.
   --arena NAME      foundry (big, up to eight), lattice (pillars, four to six)
                     or hollow (small, two to four)
   --teams           Red against Blue instead of everyone for themselves
+  --name NAME       your pilot name (saved; default: your login name)
   --bots N          bots in your games, 0-7 (default 5)
                     (the title screen remembers arena, mode, bots, skill and
                     ship in $XDG_CONFIG_HOME/tspace/settings.txt; options here
@@ -105,6 +106,11 @@ fn parse_args() -> Result<Option<Args>, String> {
                 }
                 None => a.start = Start::Browse,
             },
+            "--name" => {
+                a.settings.name = game::clean_name(&value(i, "--name")?);
+                a.settings.save();
+                i += 1;
+            }
             "--arena" => {
                 let v = value(i, "--arena")?.to_lowercase();
                 a.settings.arena = arena::BUILTIN.iter().map(|(id, _)| *id).find(|id| *id == v).ok_or(format!("--arena {v}: try foundry, lattice or hollow"))?;

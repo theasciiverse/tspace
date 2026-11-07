@@ -33,9 +33,11 @@ mod tests {
 
     #[test]
     fn settings_round_trip() {
-        let s = Settings { arena: "lattice", teams: true, bots: 3, level: Level::Hard, ship: Kind::Weaver };
+        let s = Settings { name: "Ace Pilot".into(), arena: "lattice", teams: true, bots: 3, level: Level::Hard, ship: Kind::Weaver };
         let back = Settings::parse(&s.to_text());
-        assert_eq!((back.arena, back.teams, back.bots, back.level, back.ship), ("lattice", true, 3, Level::Hard, Kind::Weaver));
+        assert_eq!((back.name.as_str(), back.arena, back.teams, back.bots, back.level, back.ship), ("Ace Pilot", "lattice", true, 3, Level::Hard, Kind::Weaver));
+        assert_eq!(clean_name("  a very long pilot name\t"), "a very long");
+        assert_eq!(player_name("Wren"), "Wren");
         let junk = Settings::parse("arena = nowhere\nbots = lots\nship=dart\n");
         assert_eq!((junk.arena, junk.bots, junk.ship), (DEMO_ARENA, 5, Kind::Dart));
     }
@@ -68,6 +70,8 @@ pub enum Start {
 }
 
 pub struct Settings {
+    /// Pilot name; empty means the login name.
+    pub name: String,
     pub arena: &'static str,
     pub teams: bool,
     pub bots: usize,
@@ -77,7 +81,7 @@ pub struct Settings {
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings { arena: DEMO_ARENA, teams: false, bots: 5, level: Level::Medium, ship: Kind::Lance }
+        Settings { name: String::new(), arena: DEMO_ARENA, teams: false, bots: 5, level: Level::Medium, ship: Kind::Lance }
     }
 }
 
@@ -94,6 +98,7 @@ impl Settings {
                         s.arena = id;
                     }
                 }
+                "name" => s.name = clean_name(v),
                 "teams" => s.teams = v == "true",
                 "bots" => s.bots = v.parse::<usize>().map_or(s.bots, |n| n.min(MAX_PLAYERS - 1)),
                 "skill" => s.level = Level::ALL.into_iter().find(|l| l.name() == v).unwrap_or(s.level),
@@ -106,7 +111,8 @@ impl Settings {
 
     pub fn to_text(&self) -> String {
         format!(
-            "# tspace settings, written by the title screen\narena = {}\nteams = {}\nbots = {}\nskill = {}\nship = {}\n",
+            "# tspace settings, written by the title screen\nname = {}\narena = {}\nteams = {}\nbots = {}\nskill = {}\nship = {}\n",
+            self.name,
             self.arena,
             self.teams,
             self.bots,
@@ -206,15 +212,21 @@ pub struct Game {
     seed: u64,
 }
 
-fn player_name() -> String {
-    let n = std::env::var("USER").or_else(|_| std::env::var("USERNAME")).unwrap_or_else(|_| "Pilot".into());
-    let n: String = n.chars().take(12).collect();
+/// Up to 12 printable characters, trimmed.
+pub fn clean_name(n: &str) -> String {
+    n.trim().chars().filter(|c| !c.is_control()).take(12).collect::<String>().trim().to_string()
+}
+
+/// The chosen name, else the login name, else "Pilot".
+fn player_name(chosen: &str) -> String {
+    let n = if chosen.is_empty() { clean_name(&std::env::var("USER").or_else(|_| std::env::var("USERNAME")).unwrap_or_default()) } else { clean_name(chosen) };
     if n.is_empty() { "Pilot".into() } else { n }
 }
 
 impl Game {
     pub fn new(start: Start, settings: Settings, exact_keys: bool) -> Game {
         let seed = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(1, |d| d.as_nanos() as u64);
+        let name = player_name(&settings.name);
         let mut g = Game {
             phase: Phase::Title,
             phase_t: 0.0,
@@ -225,7 +237,7 @@ impl Game {
             brains: (0..MAX_PLAYERS).map(|_| None).collect(),
             me: 0,
             role: Role::Solo,
-            name: player_name(),
+            name,
             browser: None,
             browse_pick: 0,
             ticket_text: String::new(),

@@ -324,6 +324,9 @@ in the same folder.
   Ns" instead of an empty energy bar. A hit ship flashes white for 0.12 s (`Player::flash`, in
   the state, so guests see it); under a quarter energy the bar pulses and
   a double beep sounds once per dip (again after recovering past 40%).
+- **Name:** `--name` (saved as `name` in the settings file), else the
+  login name, cleaned to 12 printable characters; a second pilot with
+  the same name in one game gets a number.
 - **Settings:** the title's Arena, Mode, Bots, Bot skill and Ship are
   saved on every change to `$XDG_CONFIG_HOME/tspace/settings.txt`
   (`key = value`, unknown or bad values ignored) and loaded at start;

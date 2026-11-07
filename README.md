@@ -22,6 +22,7 @@ cargo run --release -- --demo          # watch eight bots
 cargo run --release -- --bots 7 --skill hard --ship weaver
 cargo run --release -- --arena hollow --bots 2   # the small arena
 cargo run --release -- --teams --play            # Red against Blue
+cargo run --release -- --name Ace                # your pilot name (remembered)
 ```
 
 You need a truecolour terminal with UTF-8, at least 60x20; 100x30 or bigger
@@ -107,7 +108,8 @@ steering feels immediate over the internet too.
 
 ## Settings
 
-The title screen remembers your arena, mode, bots, bot skill and ship in
+The title screen remembers your arena, mode, bots, bot skill and ship, and
+`--name` your pilot name, in
 `~/.config/tspace/settings.txt` (`$XDG_CONFIG_HOME/tspace`). Command-line
 options override it for that run.
 
