@@ -388,6 +388,28 @@ mod tests {
     use ratatui::Terminal;
     use ratatui::backend::TestBackend;
 
+    /// How long a frame takes to draw on a big terminal (300x90, eight
+    /// ships). `cargo test --release draw_time -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn draw_time() {
+        let settings = Settings { name: String::new(), arena: "foundry", teams: false, bots: 7, level: Level::Hard, ship: Kind::Lance };
+        let mut g = Game::new(Start::Demo, settings, true);
+        let (mut input, mut audio) = (Input::new(true), Audio::new(true));
+        for _ in 0..600 {
+            g.tick(&mut input, &mut audio);
+        }
+        for (w, h) in [(100, 30), (200, 60), (300, 90)] {
+            let mut t = Terminal::new(TestBackend::new(w, h)).unwrap();
+            let start = std::time::Instant::now();
+            for _ in 0..100 {
+                g.tick(&mut input, &mut audio);
+                t.draw(|f| draw(f, &g)).unwrap();
+            }
+            println!("{w}x{h}: {:.2} ms a frame (tick + draw)", start.elapsed().as_secs_f64() * 10.0);
+        }
+    }
+
     /// The whole screen draws, in both modes and both arenas, at the
     /// recording size and a small one, with the scores card up.
     #[test]

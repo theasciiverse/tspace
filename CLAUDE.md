@@ -396,7 +396,12 @@ in the same folder.
 cargo test --release      # 32 tests: soak (every arena and mode, 3 bot minutes each), settings, movement, arena, rules, teams, streaks, Repulsor, dodging, prediction replay, bots fight, frame size, tickets, sound, screens draw
 cargo clippy --release
 cargo test --release balance -- --ignored --nocapture   # bots per ship, ~10 s
+cargo test --release draw_time -- --ignored --nocapture # frame cost by terminal size
 ```
+
+Frame cost (2026-11-08, tick plus drawing into ratatui's test buffer,
+eight ships): 0.17 ms at 100x30, 0.37 ms at 200x60, 0.65 ms at 300x90,
+against 16.7 ms a frame; the terminal's own output is extra.
 
 The balance run is a smoke test, not a measurement: hard bots, two of
 each ship, four 5-minute matches per arena, kills and deaths per ship.
