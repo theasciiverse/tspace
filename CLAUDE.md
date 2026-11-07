@@ -308,7 +308,9 @@ in the same folder.
   Other pilots' guns are quieter with distance.
 - **Bots** (`src/bots.rs`, header lists the behaviour): lead the aim,
   keep a distance per ship, flee under 22% energy (medium and hard, with
-  the odd mine dropped behind), burn on long trips, brake before walls.
+  the odd mine dropped behind), burn on long trips, dodge shots about to
+  hit (hard always, medium half the time), brake before walls. With
+  dodging, the Foundry balance run had 9% fewer kills, ships 0.83-1.31.
 - **Streaks:** `Player::streak` counts kills since the last death; the
   feed announces 3, 5, 8 and every 5 after, and who ended a streak of 3
   or more (`Event::Streak`, `Event::StreakEnded`). Feed only, no score.
@@ -350,7 +352,7 @@ in the same folder.
 ## Verifying
 
 ```bash
-cargo test --release      # 28 tests: movement, arena, rules, teams, streaks, prediction replay, bots fight, frame size, tickets, sound, screens draw
+cargo test --release      # 29 tests: movement, arena, rules, teams, streaks, dodging, prediction replay, bots fight, frame size, tickets, sound, screens draw
 cargo clippy --release
 cargo test --release balance -- --ignored --nocapture   # bots per ship, ~10 s
 ```

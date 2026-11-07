@@ -9,6 +9,9 @@
 //! - Nearly out of energy in a fight (medium and hard): turn tail at full
 //!   speed, now and then dropping a mine behind.
 //! - Long trips with a full tank: afterburner.
+//! - A foe's shot about to hit (within half a second): slip forward or
+//!   back along the heading, off its line, still aiming (hard always,
+//!   medium on half its looks, easy never).
 //! - Always: brake before flying into a wall.
 //!
 //! Difficulty changes only reaction time, aim error and how much energy a
@@ -62,11 +65,13 @@ pub struct Brain {
     field_age: f32,
     last_seen: Option<(f32, f32)>,
     was_alive: bool,
+    /// Dodging shots this look (hard: always, medium: some looks).
+    dodges: bool,
 }
 
 impl Brain {
     pub fn new(level: Level, seed: u32) -> Brain {
-        Brain { level, rng: seed | 1, look: 0.0, target: None, aim_err: 0.0, goal: None, field: Vec::new(), field_age: 99.0, last_seen: None, was_alive: false }
+        Brain { level, rng: seed | 1, look: 0.0, target: None, aim_err: 0.0, goal: None, field: Vec::new(), field_age: 99.0, last_seen: None, was_alive: false, dodges: false }
     }
 
     fn rand(&mut self) -> f32 {
@@ -101,6 +106,11 @@ impl Brain {
             self.look = react * (0.7 + 0.6 * self.rand());
             self.target = pick_target(w, me, p);
             self.aim_err = (self.rand() * 2.0 - 1.0) * err;
+            self.dodges = match self.level {
+                Level::Easy => false,
+                Level::Medium => self.rand() < 0.5,
+                Level::Hard => true,
+            };
         }
         if let Some(t) = self.target.and_then(|t| w.player(t)).filter(|t| t.alive) {
             self.last_seen = Some((t.x, t.y));
@@ -170,6 +180,11 @@ impl Brain {
                     c.burn = c.thrust && far && p.energy > p.max_energy * 0.9;
                 }
             }
+        }
+        // a shot about to hit us: slip forward or back, off its line
+        if self.dodges && let Some(push) = dodge(w, me, p) {
+            c.thrust = push > 0.0;
+            c.reverse = push < 0.0;
         }
         // about to hit a wall: brake, unless the bounce is gentle
         let (px, py) = (p.x + p.vx * 0.4, p.y + p.vy * 0.4);
@@ -257,6 +272,50 @@ impl Brain {
         let d = dx.hypot(dy);
         (d > 1.0).then(|| (dx / d, dy / d))
     }
+}
+
+/// The most urgent foe's shot that will pass within reach in the next
+/// half second, and which way along our heading gets us clear: +1 forward,
+/// -1 back. None when nothing is coming, or when the shot comes along our
+/// own line (moving along it would not help).
+fn dodge(w: &World, me: usize, p: &Player) -> Option<f32> {
+    let (hx, hy) = p.heading();
+    let mut best: Option<(f32, f32)> = None;
+    for s in &w.s.shots {
+        if !w.foes(s.owner as usize, me) {
+            continue;
+        }
+        // relative motion of the shot
+        let (rx, ry) = (s.x - p.x, s.y - p.y);
+        let (vx, vy) = (s.vx - p.vx, s.vy - p.vy);
+        let v2 = vx * vx + vy * vy;
+        if v2 < 1.0 {
+            continue;
+        }
+        let t = -(rx * vx + ry * vy) / v2;
+        if !(0.0..0.5).contains(&t) {
+            continue;
+        }
+        let (cx, cy) = (rx + vx * t, ry + vy * t);
+        if cx.hypot(cy) > p.radius() + 10.0 {
+            continue;
+        }
+        // away from the shot's path: the closest point, or sideways if dead on
+        let v = v2.sqrt();
+        let (mut ax, mut ay) = (-cx, -cy);
+        if ax.hypot(ay) < 1.0 {
+            (ax, ay) = (-vy / v, vx / v);
+        }
+        let along = ax * hx + ay * hy;
+        let side = (hx * vy - hy * vx).abs() / v;
+        if side < 0.3 {
+            continue;
+        }
+        if best.is_none_or(|(bt, _)| t < bt) {
+            best = Some((t, along.signum()));
+        }
+    }
+    best.map(|b| b.1)
 }
 
 fn pick_target(w: &World, me: usize, p: &Player) -> Option<usize> {
@@ -367,6 +426,30 @@ mod tests {
         let shot = (ax / n * speed * t, ay / n * speed * t);
         let target = (d.0 + v.0 * t, d.1 + v.1 * t);
         assert!((shot.0 - target.0).abs() < 0.5 && (shot.1 - target.1).abs() < 0.5);
+    }
+
+    #[test]
+    fn dodges_a_shot_from_the_side() {
+        use crate::world::{Shot, ShotKind};
+        let mut w = World::new("foundry", 1);
+        w.add_player("a".into(), true, Kind::Lance);
+        w.add_player("b".into(), true, Kind::Lance);
+        for _ in 0..60 {
+            w.step(1.0 / 60.0, &[]);
+        }
+        let (x, y) = Arena::centre((40, 36));
+        {
+            let p = w.s.players[0].as_mut().unwrap();
+            (p.x, p.y, p.vx, p.vy, p.orient) = (x, y, 0.0, 0.0, 0.0); // facing up
+        }
+        // a shot from the left, aimed a little ahead of us (above)
+        w.s.shots.push(Shot { owner: 1, kind: ShotKind::Gun, x: x - 200.0, y: y - 4.0, vx: 800.0, vy: 0.0, life: 1.0, bounces: 0, damage: 50.0, radius: 0.0 });
+        let p = w.player(0).unwrap();
+        // it passes just above our centre, so back away (down)
+        assert_eq!(dodge(&w, 0, p), Some(-1.0));
+        // nothing to dodge once the shot flies away from us
+        w.s.shots[0].vx = -800.0;
+        assert_eq!(dodge(&w, 0, w.player(0).unwrap()), None);
     }
 
     /// A quick look that bots fight: four of them for a simulated two
