@@ -300,6 +300,9 @@ in the same folder.
 - **Sound:** synthesised (`src/audio.rs`): chirp guns, bombs, blasts,
   hits, death, pickups, spawn, plus an engine voice for your own thrust.
   Other pilots' guns are quieter with distance.
+- **Bots** (`src/bots.rs`, header lists the behaviour): lead the aim,
+  keep a distance per ship, flee under 22% energy (medium and hard, with
+  the odd mine dropped behind), burn on long trips, brake before walls.
 - **Feel:** a hit ship flashes white for 0.12 s (`Player::flash`, in
   the state, so guests see it); under a quarter energy the bar pulses and
   a double beep sounds once per dip (again after recovering past 40%).

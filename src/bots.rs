@@ -6,6 +6,9 @@
 //!   bomb from closer in, keep a preferred distance.
 //! - Otherwise: fly to a pickup, the last place an enemy was seen, or a
 //!   random spot, following a breadth-first path field over the tiles.
+//! - Nearly out of energy in a fight (medium and hard): turn tail at full
+//!   speed, now and then dropping a mine behind.
+//! - Long trips with a full tank: afterburner.
 //! - Always: brake before flying into a wall.
 //!
 //! Difficulty changes only reaction time, aim error and how much energy a
@@ -108,7 +111,21 @@ impl Brain {
         let st = p.kind.stats();
         let mut c = Controls::default();
         let mut aim: Option<f32> = None;
-        if let Some(t) = self.target.and_then(|t| w.player(t)) {
+        // nearly out of energy and under fire: break off and run
+        let fleeing = self.target.is_some() && p.energy < p.max_energy * 0.22 && self.level != Level::Easy;
+        if fleeing {
+            let t = w.player(self.target.unwrap()).unwrap();
+            let (dx, dy) = (p.x - t.x, p.y - t.y);
+            let d = dx.hypot(dy).max(1.0);
+            let cruise = st.top_speed;
+            let (dvx, dvy) = (dx / d * cruise - p.vx, dy / d * cruise - p.vy);
+            let want = turns(dvx, dvy);
+            aim = Some(want);
+            c.thrust = wrap(want - p.orient).abs() < 0.12;
+            // drop a mine behind on the way out, now and then
+            c.mine = d < 160.0 && p.energy > st.mine_cost * 1.05 && self.rand() < 0.03;
+            self.goal = None;
+        } else if let Some(t) = self.target.and_then(|t| w.player(t)) {
             let (dx, dy) = (t.x - p.x, t.y - p.y);
             let dist = dx.hypot(dy);
             let (lx, ly) = lead((dx, dy), (t.vx - p.vx, t.vy - p.vy), st.gun.speed);
@@ -145,6 +162,12 @@ impl Brain {
                     let want = turns(dvx, dvy);
                     aim = Some(want);
                     c.thrust = wrap(want - p.orient).abs() < 0.07;
+                    // a long way to go and energy to spare: burn
+                    let far = self.goal.is_some_and(|g| {
+                        let (gx, gy) = Arena::centre(g);
+                        (gx - p.x).hypot(gy - p.y) > 600.0
+                    });
+                    c.burn = c.thrust && far && p.energy > p.max_energy * 0.9;
                 }
             }
         }
