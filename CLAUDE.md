@@ -146,6 +146,34 @@ explosion animations and the zones' LVZ art, which we replace with our own.
 A bigger terminal simply shows more of the map, like a bigger monitor in
 Continuum.
 
+## Overnight 2026-11-07/08 (read this first)
+
+A self-paced loop made one improvement per round after v0.2.0 (`9cd3d84`),
+each tested, documented and pushed to main:
+
+- **Balance:** Weaver buffed after a bot balance run (0.44 k/d before);
+  `balance` smoke test (ignored) for all three arenas.
+- **Bots:** flee under 22% energy (with the odd mine behind), afterburner
+  on long trips, dodge shots about to hit (hard always, medium half).
+- **Modes and content:** team mode (Red against Blue, no friendly fire,
+  first team to 25; `--teams`), a third arena (Lattice, pillars, four to
+  six), a fifth pickup (Repulsor: a shove and a clean-up), kill streaks
+  in the feed.
+- **Feel:** hit flash, pulsing low-energy bar and beep, camera on your
+  killer while you wait, "down · back in Ns" in the status bar.
+- **Fixes:** name labels broken by dots, status bar overflow, help and
+  tip fitted to 60x20, team scores grouped by team.
+- **Convenience:** title settings and `--name` remembered in
+  `~/.config/tspace/settings.txt`.
+- **Checks:** a test drawing every screen (it caught a crash on the way),
+  bots must take pickups, LAN host plus guest re-run after the protocol
+  changes. Preview cast re-recorded as a team demo.
+
+Protocol is now 6 (any of these changes breaks older copies). Cargo
+version still 0.2.0; no tag or release. Still needs people: play-testing
+(feel, ship balance, bot strength), a real gamepad, an internet join
+between two networks.
+
 ## Update 2026-11-07: Zubspace again, and what we take
 
 Checked with `gh api` on 2026-11-07.
