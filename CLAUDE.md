@@ -350,8 +350,9 @@ in the same folder.
 - `tools/ansi2png.py`: Panzer's capture converter, now drawing Braille
   as dots. `tools/gen_arenas.py`: the arena generator.
 - `asciiverse/record-preview.sh`: records `asciiverse/tspace.cast`
-  (100x30, about 47 s of `--demo` with the scores card in the middle,
-  11.6 MB).
+  (100x30, about 47 s of `--demo --teams` with the scores card in the
+  middle, 13.1 MB; re-recorded 2026-11-08 for teams, hit flash, streaks
+  and the Repulsor).
 
 ## Verifying
 

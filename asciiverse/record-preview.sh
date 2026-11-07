@@ -1,6 +1,6 @@
 #!/bin/sh
-# Records the catalog preview, asciiverse/tspace.cast: 100x30, `tspace --demo`
-# (eight bots in a match, the camera on the leader), with the scores card
+# Records the catalog preview, asciiverse/tspace.cast: 100x30, `tspace --demo --teams`
+# (eight bots, Red against Blue, the camera on the leader), with the scores card
 # shown for a few seconds in the middle.
 # Runs asciinema in a detached tmux pane, so nothing from this terminal gets
 # in; a throwaway HOME keeps the session log out of the way.
@@ -17,7 +17,7 @@ tmux -L tspace-rec new-session -d -s rec -x 100 -y 30 \
      TERM=xterm-256color COLORTERM=truecolor LANG=C.UTF-8 \
    asciinema rec --window-size 100x30 --idle-time-limit 2 \
      --capture-env TERM,COLORTERM,LANG --title 'tspace' \
-     --command 'tspace --demo --mute' $out"
+     --command 'tspace --demo --teams --mute' $out"
 sleep 28
 tmux -L tspace-rec send-keys -t rec Tab
 sleep 5

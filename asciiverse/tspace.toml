@@ -33,7 +33,8 @@ gamepad = true
 glyphs = ["braille"]
 system_deps = ["libasound2", "libudev1"]
 
-# 100x30, `tspace --demo` (eight bots), scores card at about 28-33 s
+# 100x30, `tspace --demo --teams` (eight bots, Red against Blue), scores
+# card at about 28-33 s
 # (asciiverse/record-preview.sh)
 [media]
 cast = "asciiverse/tspace.cast"
