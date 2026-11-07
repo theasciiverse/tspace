@@ -56,6 +56,7 @@ pub fn pickup_colour(k: PickupKind) -> Color {
         PickupKind::Scatter => Color::Rgb(255, 150, 60),
         PickupKind::Shroud => Color::Rgb(185, 120, 255),
         PickupKind::Overdrive => Color::Rgb(80, 235, 235),
+        PickupKind::Repulsor => Color::Rgb(240, 240, 255),
     }
 }
 
@@ -175,6 +176,10 @@ impl Fx {
                     && (p.x - x).hypot(p.y - y) < 400.0 {
                         self.shake = self.shake.max(0.25);
                     }
+            }
+            Event::Pulse { x, y, r } => {
+                self.rings.push(Ring { x, y, r, t: 0.0 });
+                self.burst(x, y, 24, r * 3.0, 0.35, pickup_colour(PickupKind::Repulsor));
             }
             Event::Died { who, x, y, .. } => {
                 let c = player_colour(w, who as usize);

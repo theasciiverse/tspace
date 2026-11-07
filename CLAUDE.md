@@ -205,7 +205,10 @@ state are in `ROADMAP.md`.
 - **Weapons:** guns, bombs with blast damage, mines; energy is health and
   ammo and recharges.
 - **Pickups:** Overcharge (more max energy this life), Scatter (spread
-  shot), Shroud (off radar for a while), Afterburner (speed boost).
+  shot), Shroud (off radar for a while), Overdrive (speed boost),
+  Repulsor (added later: an instant shockwave, 150 px, that shoves foes
+  away at 520 px/s, capped under a tile per step, and clears their shots
+  and mines nearby; no damage; `Event::Pulse`).
 - **Arenas:** our own text grids in `arenas/*.txt`, size per arena; one
   tile is 2x1 cells, 4x4 Braille dots.
 - **Bots:** our own, small: target, lead the aim, avoid walls, keep energy.
@@ -293,7 +296,7 @@ in the same folder.
   ALPN `tspace/1`, LAN beacon on UDP 31459, torched-style tickets
   (`tspace` + base32 of the iroh address). The host emits its ticket
   once iroh is online (up to 8 s); LAN play needs no internet.
-- **Guest prediction (protocol 2; 3 adds the hit flash, 4 teams, 5 streaks):** guests number their inputs
+- **Guest prediction (protocol 2; 3 adds the hit flash, 4 teams, 5 streaks, 6 Repulsor):** guests number their inputs
   (`Msg::Input { seq, .. }`). The host queues each guest's inputs and
   applies one per tick (a backlog over 3 is caught up at once), and every
   frame carries `acks`, the last input applied per guest slot. The guest
@@ -352,7 +355,7 @@ in the same folder.
 ## Verifying
 
 ```bash
-cargo test --release      # 29 tests: movement, arena, rules, teams, streaks, dodging, prediction replay, bots fight, frame size, tickets, sound, screens draw
+cargo test --release      # 30 tests: movement, arena, rules, teams, streaks, Repulsor, dodging, prediction replay, bots fight, frame size, tickets, sound, screens draw
 cargo clippy --release
 cargo test --release balance -- --ignored --nocapture   # bots per ship, ~10 s
 ```

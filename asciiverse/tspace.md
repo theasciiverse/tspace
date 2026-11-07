@@ -10,8 +10,8 @@ don't have.
 Fly one of four ships. The **Dart** is fast and fragile, the **Lance**
 does a bit of everything, the **Anvil** is slow, tough and carries
 bouncing bombs, and the **Weaver** sows mines and fires shots that bounce
-off walls. Grab **Overcharge**, **Scatter**, **Shroud** and **Overdrive**
-from the arena floor. First pilot to 15 kills takes the match.
+off walls. Grab **Overcharge**, **Scatter**, **Shroud**, **Overdrive** and
+the **Repulsor** from the arena floor. First pilot to 15 kills takes the match.
 
 Up to eight pilots fight in the Foundry, four to six among the pillars
 of the Lattice, or two to four in the tighter Hollow, every pilot for themselves or Red against Blue. Bots fill the empty seats at

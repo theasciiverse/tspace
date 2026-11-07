@@ -88,6 +88,7 @@ Pickups appear at fixed spots and come back after a while:
 | **Scatter** | your guns fire a three-way spread |
 | **Shroud** | off radar and hard to see |
 | **Overdrive** | more thrust and top speed |
+| **Repulsor** | a shockwave on the spot: nearby enemies are shoved away, their shots and mines nearby are wiped out |
 
 ## Playing together
 

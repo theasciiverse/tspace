@@ -370,7 +370,7 @@ fn help(f: &mut Frame, full: Rect) {
         Line::from(""),
         Line::from("Energy is shield and ammunition, and refills itself."),
         Line::from([p(PickupKind::Overcharge, " more energy · "), p(PickupKind::Scatter, " spread shot")].concat()),
-        Line::from([p(PickupKind::Shroud, " off radar · "), p(PickupKind::Overdrive, " speed")].concat()),
+        Line::from([p(PickupKind::Shroud, " off radar · "), p(PickupKind::Overdrive, " speed · "), p(PickupKind::Repulsor, " shove")].concat()),
         Line::from(""),
         hint_line("Esc or Enter closes this"),
     ];

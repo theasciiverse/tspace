@@ -25,6 +25,8 @@ const BOMB_LIFE: f32 = 2.6;
 const PICKUP_EVERY: f32 = 15.0;
 const PICKUP_REACH: f32 = 14.0;
 const EFFECT_FOR: f32 = 12.0;
+const REPULSE_REACH: f32 = 150.0;
+const REPULSE_PUSH: f32 = 520.0;
 const NEXT_MATCH_AFTER: f32 = 10.0;
 
 /// One player's controls for one step. `fire` and `burn` are held; `bomb`,
@@ -52,9 +54,11 @@ pub enum PickupKind {
     Shroud,
     /// More thrust and top speed.
     Overdrive,
+    /// At once: shoves nearby foes away and clears their shots and mines.
+    Repulsor,
 }
 
-pub const PICKUPS: [PickupKind; 4] = [PickupKind::Overcharge, PickupKind::Scatter, PickupKind::Shroud, PickupKind::Overdrive];
+pub const PICKUPS: [PickupKind; 5] = [PickupKind::Overcharge, PickupKind::Scatter, PickupKind::Shroud, PickupKind::Overdrive, PickupKind::Repulsor];
 
 impl PickupKind {
     pub fn name(self) -> &'static str {
@@ -63,6 +67,7 @@ impl PickupKind {
             PickupKind::Scatter => "Scatter",
             PickupKind::Shroud => "Shroud",
             PickupKind::Overdrive => "Overdrive",
+            PickupKind::Repulsor => "Repulsor",
         }
     }
 }
@@ -191,6 +196,8 @@ pub enum Event {
     Bounce { who: u8 },
     Hit { who: u8, x: f32, y: f32 },
     Blast { x: f32, y: f32, r: f32 },
+    /// A Repulsor shockwave (no damage).
+    Pulse { x: f32, y: f32, r: f32 },
     Died { who: u8, by: Option<u8>, x: f32, y: f32 },
     MineSet { who: u8 },
     Pickup { who: u8, kind: PickupKind },
@@ -560,7 +567,7 @@ impl World {
                 None => {
                     let t = spot.timer - dt;
                     if t <= 0.0 {
-                        let kind = PICKUPS[((self.rand() * 4.0) as usize).min(3)];
+                        let kind = PICKUPS[((self.rand() * PICKUPS.len() as f32) as usize).min(PICKUPS.len() - 1)];
                         self.s.spots[k].ready = Some(kind);
                     } else {
                         self.s.spots[k].timer = t;
@@ -578,13 +585,39 @@ impl World {
                             PickupKind::Scatter => p.scatter = EFFECT_FOR,
                             PickupKind::Shroud => p.shroud = EFFECT_FOR,
                             PickupKind::Overdrive => p.overdrive = EFFECT_FOR,
+                            PickupKind::Repulsor => {}
                         }
                         self.s.spots[k] = Spot { tile: spot.tile, ready: None, timer: PICKUP_EVERY };
                         self.events.push(Event::Pickup { who: j as u8, kind });
+                        if kind == PickupKind::Repulsor {
+                            self.repulse(j);
+                        }
                     }
                 }
             }
         }
+    }
+
+    /// The Repulsor's shockwave around player `j`: foes are pushed away at
+    /// speed (still bounded by the walls), foes' shots and mines nearby go.
+    fn repulse(&mut self, j: usize) {
+        let Some((x, y)) = self.player(j).map(|p| (p.x, p.y)) else { return };
+        let foes: Vec<usize> = (0..MAX_PLAYERS).filter(|&i| self.foes(j, i)).collect();
+        for i in foes.iter().copied() {
+            let Some(p) = self.s.players[i].as_mut().filter(|p| p.alive) else { continue };
+            let (dx, dy) = (p.x - x, p.y - y);
+            let d = dx.hypot(dy);
+            if d <= REPULSE_REACH && d > 0.1 {
+                (p.vx, p.vy) = (p.vx + dx / d * REPULSE_PUSH, p.vy + dy / d * REPULSE_PUSH);
+                // the walls still decide: keep under a tile per step
+                let v = zs::truncate_movement_vector(MovementVector::new(p.vx, p.vy), TILE * 60.0 * 0.9);
+                (p.vx, p.vy) = (v.x, v.y);
+            }
+        }
+        let near = |sx: f32, sy: f32| (sx - x).hypot(sy - y) <= REPULSE_REACH;
+        self.s.shots.retain(|s| !(near(s.x, s.y) && foes.contains(&(s.owner as usize))));
+        self.s.mines.retain(|m| !(near(m.x, m.y) && foes.contains(&(m.owner as usize))));
+        self.events.push(Event::Pulse { x, y, r: REPULSE_REACH });
     }
 
     fn blast(&mut self, x: f32, y: f32, r: f32, dmg: f32, by: u8) {
@@ -892,6 +925,25 @@ mod tests {
         w.damage(0, 99999.0, 2);
         assert!(w.events.contains(&Event::StreakEnded { who: 0, by: Some(2), n: 3 }));
         assert_eq!(w.player(0).unwrap().streak, 0);
+    }
+
+    #[test]
+    fn repulsor_shoves_foes_and_clears_their_shots() {
+        let mut w = world_with(2);
+        run(&mut w, 1.0, &[]);
+        let (x, y) = Arena::centre((40, 36));
+        for (slot, dx) in [(0usize, 0.0f32), (1, 60.0)] {
+            let p = w.s.players[slot].as_mut().unwrap();
+            (p.x, p.y, p.vx, p.vy) = (x + dx, y, 0.0, 0.0);
+        }
+        w.s.mines.push(Mine { owner: 1, x: x - 40.0, y, age: 0.0, damage: 500.0 });
+        w.s.mines.push(Mine { owner: 0, x: x - 40.0, y, age: 0.0, damage: 500.0 });
+        w.repulse(0);
+        let foe = w.player(1).unwrap();
+        assert!(foe.vx > 400.0 && foe.vy.abs() < 1.0);
+        assert_eq!(w.s.mines.len(), 1);
+        assert_eq!(w.s.mines[0].owner, 0);
+        assert!(w.events.iter().any(|e| matches!(e, Event::Pulse { .. })));
     }
 
     #[test]

@@ -11,7 +11,7 @@ use crate::world::{Controls, Event, State};
 use serde::{Deserialize, Serialize};
 
 /// Bumped on any incompatible change; the host turns away other versions.
-pub const VERSION: u32 = 5;
+pub const VERSION: u32 = 6;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Msg {

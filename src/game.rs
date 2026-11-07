@@ -611,6 +611,11 @@ impl Game {
                         audio.play(Sfx::Bomb, near(x, y));
                     }
                 }
+                Event::Pulse { x, y, .. } => {
+                    if near(x, y) > 0.05 {
+                        audio.play(Sfx::Bomb, near(x, y));
+                    }
+                }
                 Event::Blast { x, y, .. } => {
                     if near(x, y) > 0.05 {
                         audio.play(Sfx::Blast, near(x, y));
