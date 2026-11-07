@@ -1,0 +1,42 @@
+# DRAFT for hub/catalog/tspace.toml (not in the hub yet: David's call)
+schema_version = 1
+id = "tspace"
+kind = "game"
+title = "tspace"
+description = "Zero-friction arena dogfights drawn in Braille: four ships, bombs, mines and pickups, against bots or friends over the LAN or the internet"
+year = 2026
+new = true
+# MIT (David, 2026-11-07); the adapted Zubspace code is MIT too
+license = "MIT"
+repo = "theasciiverse/tspace"
+provenance = "Asciiverse made tspace in Rust in 2026, inspired by SubSpace (Burst / Virgin Interactive, 1997), with movement code adapted from Peter Kieltyka's Zubspace (MIT)."
+topics = ["action", "space", "shooter", "multiplayer", "lan", "bots", "braille", "rust"]
+genre = "action"
+
+[developer]
+name = "Asciiverse"
+url = "https://asciiverse.sh"
+
+# session log and the host's ticket go to $XDG_STATE_HOME/tspace
+[exec]
+game = "tspace"
+args = []
+
+[min_terminal]
+cols = 60
+rows = 20
+
+[requires]
+utf8 = true
+color = "truecolor"
+glyphs = ["braille"]
+system_deps = ["libasound2"]
+
+# 100x30, `tspace --demo` (eight bots), scores card at about 28-33 s
+# (asciiverse/record-preview.sh)
+[media]
+cast = "asciiverse/tspace.cast"
+thumbnail_at = 12.0
+
+[release]
+source = "github"
