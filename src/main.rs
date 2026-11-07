@@ -37,7 +37,8 @@ In the game, H shows the controls.
   --host            host a game (LAN players find it; Tab shows an invite ticket)
   --join            look for games on the local network
   --join TICKET     join a host by its invite ticket (works across the internet)
-  --arena NAME      foundry (big, up to eight) or hollow (small, two to four)
+  --arena NAME      foundry (big, up to eight), lattice (pillars, four to six)
+                    or hollow (small, two to four)
   --teams           Red against Blue instead of everyone for themselves
   --bots N          bots in your games, 0-7 (default 5)
   --skill LEVEL     easy, medium or hard (default medium)
@@ -103,7 +104,7 @@ fn parse_args() -> Result<Option<Args>, String> {
             },
             "--arena" => {
                 let v = value(i, "--arena")?.to_lowercase();
-                a.settings.arena = arena::BUILTIN.iter().map(|(id, _)| *id).find(|id| *id == v).ok_or(format!("--arena {v}: try foundry or hollow"))?;
+                a.settings.arena = arena::BUILTIN.iter().map(|(id, _)| *id).find(|id| *id == v).ok_or(format!("--arena {v}: try foundry, lattice or hollow"))?;
                 i += 1;
             }
             "--bots" => {

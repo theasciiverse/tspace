@@ -3,11 +3,13 @@
 //! ```text
 //! # comment
 //! name: Foundry
+//! about: big, for up to eight
 //! ####...
 //! #..S.*.
 //! ```
 //!
-//! Comments (`# ` with a space) and `name:` come before the grid.
+//! Comments (`# ` with a space), `name:` and `about:` (a short line for
+//! the title screen) come before the grid.
 //! `#` wall, `.` (or space) open, `S` spawn point, `*` pickup spot. Rows may
 //! differ in length; short rows are open to the right. Outside the grid is
 //! solid. `tools/gen_arenas.py` made the built-in ones; edit the text freely.
@@ -15,11 +17,12 @@
 pub const TILE: f32 = 16.0;
 
 /// The built-in arenas: id, text. `tools/gen_arenas.py` made them.
-pub const BUILTIN: &[(&str, &str)] = &[("foundry", include_str!("../arenas/foundry.txt")), ("hollow", include_str!("../arenas/hollow.txt"))];
+pub const BUILTIN: &[(&str, &str)] = &[("foundry", include_str!("../arenas/foundry.txt")), ("hollow", include_str!("../arenas/hollow.txt")), ("lattice", include_str!("../arenas/lattice.txt"))];
 
 #[derive(Clone, Debug)]
 pub struct Arena {
     pub name: String,
+    pub about: String,
     pub w: usize,
     pub h: usize,
     solid: Vec<bool>,
@@ -31,6 +34,7 @@ pub struct Arena {
 impl Arena {
     pub fn parse(text: &str) -> Result<Arena, String> {
         let mut name = String::from("Unnamed");
+        let mut about = String::new();
         let mut rows: Vec<&str> = Vec::new();
         for line in text.lines() {
             if rows.is_empty() {
@@ -39,6 +43,10 @@ impl Arena {
                 }
                 if let Some(n) = line.strip_prefix("name:") {
                     name = n.trim().to_string();
+                    continue;
+                }
+                if let Some(n) = line.strip_prefix("about:") {
+                    about = n.trim().to_string();
                     continue;
                 }
                 if line.trim().is_empty() {
@@ -71,7 +79,7 @@ impl Arena {
         if spawns.is_empty() {
             return Err(format!("arena {name} has no spawn points (S)"));
         }
-        Ok(Arena { name, w, h, solid, spawns, pickups })
+        Ok(Arena { name, about, w, h, solid, spawns, pickups })
     }
 
     pub fn builtin(id: &str) -> Arena {
@@ -129,7 +137,8 @@ mod tests {
             }
         }
         let f = Arena::builtin("foundry");
-        assert_eq!((f.w, f.h, f.name.as_str()), (160, 160, "Foundry"));
+        assert_eq!((f.w, f.h, f.name.as_str(), f.about.as_str()), (160, 160, "Foundry", "big, for up to eight"));
+        assert_eq!(Arena::builtin("lattice").name, "Lattice");
     }
 
     #[test]

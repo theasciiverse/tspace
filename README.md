@@ -64,6 +64,8 @@ list are used; `TSPACE_ANY_PAD=1` accepts any.
 
 - **Foundry:** 160x160 tiles, for up to eight. Corner bases, a ring in
   the middle with pickups inside it.
+- **Lattice:** 128x96, for four to six. A field of pillars to bank shots
+  off and hide behind, around a block in the middle.
 - **Hollow:** 96x72, for two to four. A corridor round the edge and a
   hall in the middle.
 

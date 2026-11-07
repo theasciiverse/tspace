@@ -9,7 +9,7 @@ what the game loads and may be hand-edited afterwards.
 ARENAS = {
     # 160x160, for up to eight
     'foundry': dict(
-        name='Foundry', w=160, h=160,
+        name='Foundry', w=160, h=160, about='big, for up to eight',
         walls=[
             (18, 6, 19, 20), (6, 18, 14, 19),          # corner base
             (30, 12, 32, 14), (12, 30, 14, 32), (46, 18, 48, 20), (18, 46, 20, 48),
@@ -24,7 +24,7 @@ ARENAS = {
     ),
     # 96x72, for two to four: a corridor round the edge, a hall in the middle
     'hollow': dict(
-        name='Hollow', w=96, h=72,
+        name='Hollow', w=96, h=72, about='small, for two to four',
         walls=[
             (8, 8, 26, 9), (8, 8, 9, 20),               # corner L
             (36, 14, 47, 15),                           # bar over the hall
@@ -35,6 +35,15 @@ ARENAS = {
         ],
         spawns=[(4, 4), (16, 4), (4, 14)],
         pickups=[(24, 18), (47, 35)],
+    ),
+    # 128x96, for four to six: a field of pillars to bank shots off and
+    # hide behind, an open lane round the middle
+    'lattice': dict(
+        name='Lattice', w=128, h=96, about='pillars everywhere, for four to six',
+        walls=[(x, y, x + 1, y + 1) for x in range(12, 60, 9) for y in range(10, 46, 8) if not (x > 44 and y > 34)]
+        + [(56, 44, 63, 47)],                           # the centre block
+        spawns=[(4, 4), (4, 20), (20, 4)],
+        pickups=[(16, 14), (52, 30), (34, 46)],
     ),
 }
 
@@ -61,7 +70,7 @@ def build(a):
     for x, y in a['pickups']:
         put(x, y, '*')
     head = '# tspace arena. Legend: # wall, . open, S spawn point, * pickup spot.\n'
-    return head + f"name: {a['name']}\n" + ''.join(''.join(r) + '\n' for r in g)
+    return head + f"name: {a['name']}\nabout: {a['about']}\n" + ''.join(''.join(r) + '\n' for r in g)
 
 
 if __name__ == '__main__':

@@ -271,10 +271,7 @@ fn title(f: &mut Frame, g: &Game, full: Rect) {
     }
     lines.push(Line::from(""));
     let blurb = match g.menu {
-        4 => match g.settings.arena {
-            "hollow" => "small, for two to four · ← → to change".to_string(),
-            _ => "big, for up to eight · ← → to change".to_string(),
-        },
+        4 => format!("{} · ← → to change", crate::arena::Arena::builtin(g.settings.arena).about),
         5 if g.settings.teams => "Red against Blue, no friendly fire · ← →".to_string(),
         5 => "everyone for themselves · ← → to change".to_string(),
         8 => g.settings.ship.stats().blurb.to_string(),
@@ -376,7 +373,7 @@ mod tests {
     /// recording size and a small one, with the scores card up.
     #[test]
     fn screens_draw() {
-        for (arena, teams) in [("foundry", false), ("hollow", true)] {
+        for (arena, teams) in [("foundry", false), ("hollow", true), ("lattice", false)] {
             let settings = Settings { arena, teams, bots: 5, level: Level::Hard, ship: Kind::Lance };
             let mut g = Game::new(Start::Demo, settings, true);
             let (mut input, mut audio) = (Input::new(true), Audio::new(true));
