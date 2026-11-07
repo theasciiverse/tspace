@@ -538,8 +538,8 @@ mod balance {
             for seed in 0..4u32 {
                 let mut w = World::new(arena, 100 + seed as u64);
                 let mut brains: Vec<Brain> = (0..players).map(|k| Brain::new(Level::Hard, 7 + seed * 31 + k as u32)).collect();
-                for k in 0..players {
-                    w.add_player(NAMES[k].into(), true, ships::ALL[k % 4]);
+                for (k, name) in NAMES.iter().take(players).enumerate() {
+                    w.add_player((*name).into(), true, ships::ALL[k % 4]);
                 }
                 w.s.kill_limit = u32::MAX;
                 for _ in 0..60 * 300 {

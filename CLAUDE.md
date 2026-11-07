@@ -394,7 +394,7 @@ in the same folder.
 
 ```bash
 cargo test --release      # 32 tests: soak (every arena and mode, 3 bot minutes each), settings, movement, arena, rules, teams, streaks, Repulsor, dodging, prediction replay, bots fight, frame size, tickets, sound, screens draw
-cargo clippy --release
+cargo clippy --release --all-targets
 cargo test --release balance -- --ignored --nocapture   # bots per ship, ~10 s
 cargo test --release draw_time -- --ignored --nocapture # frame cost by terminal size
 ```

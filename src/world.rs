@@ -917,7 +917,7 @@ mod tests {
         for _ in 0..3 {
             w.s.players[1].as_mut().unwrap().guard = 0.0;
             w.damage(1, 99999.0, 0);
-            events.extend(w.events.drain(..));
+            events.append(&mut w.events);
             w.s.players[1].as_mut().unwrap().alive = true;
         }
         assert!(events.contains(&Event::Streak { who: 0, n: 3 }));
