@@ -39,7 +39,7 @@ pub enum Phase {
     Play,
 }
 
-pub const MENU: [&str; 9] = ["Play against bots", "Host a game", "Join a LAN game", "Join with a ticket", "Arena", "Bots", "Bot skill", "Ship", "Quit"];
+pub const MENU: [&str; 10] = ["Play against bots", "Host a game", "Join a LAN game", "Join with a ticket", "Arena", "Mode", "Bots", "Bot skill", "Ship", "Quit"];
 pub const PAUSE_MENU: [&str; 2] = ["Back to the game", "Leave"];
 
 /// How the program was started.
@@ -55,6 +55,7 @@ pub enum Start {
 
 pub struct Settings {
     pub arena: &'static str,
+    pub teams: bool,
     pub bots: usize,
     pub level: Level,
     pub ship: Kind,
@@ -245,6 +246,7 @@ impl Game {
     fn start_play(&mut self) {
         self.spectate = false;
         self.fresh_world(self.settings.arena);
+        self.world.set_teams(self.settings.teams);
         let name = self.name.clone();
         self.me = self.world.add_player(name, false, self.settings.ship).unwrap_or(0);
         for _ in 0..self.settings.bots.min(MAX_PLAYERS - 1) {
@@ -256,6 +258,7 @@ impl Game {
     fn start_demo(&mut self) {
         self.role = Role::Solo;
         self.fresh_world(self.settings.arena);
+        self.world.set_teams(self.settings.teams);
         for _ in 0..MAX_PLAYERS {
             self.add_bot();
         }
@@ -276,7 +279,8 @@ impl Game {
     fn start_solo(&mut self) {
         self.role = Role::Solo;
         self.start_play();
-        self.say(format!("{} bots, {} — first to {} kills wins", self.settings.bots, self.settings.level.name(), self.world.s.kill_limit));
+        let goal = if self.world.s.teams { format!("Red against Blue, first team to {} kills", self.world.s.kill_limit) } else { format!("first to {} kills wins", self.world.s.kill_limit) };
+        self.say(format!("{} bots, {} — {goal}", self.settings.bots, self.settings.level.name()));
     }
 
     fn host(&mut self) {
@@ -382,12 +386,13 @@ impl Game {
                             let k = ids.iter().position(|&a| a == self.settings.arena).unwrap_or(0);
                             self.settings.arena = ids[if up { (k + 1) % ids.len() } else { (k + ids.len() - 1) % ids.len() }];
                         }
-                        5 => self.settings.bots = if up { (self.settings.bots + 1).min(MAX_PLAYERS - 1) } else { self.settings.bots.saturating_sub(1) },
-                        6 => {
+                        5 => self.settings.teams = !self.settings.teams,
+                        6 => self.settings.bots = if up { (self.settings.bots + 1).min(MAX_PLAYERS - 1) } else { self.settings.bots.saturating_sub(1) },
+                        7 => {
                             let k = Level::ALL.iter().position(|&l| l == self.settings.level).unwrap_or(1);
                             self.settings.level = Level::ALL[if up { (k + 1) % 3 } else { (k + 2) % 3 }];
                         }
-                        7 => {
+                        8 => {
                             let k = self.settings.ship.index();
                             self.settings.ship = ships::ALL[if up { (k + 1) % 4 } else { (k + 3) % 4 }];
                         }
@@ -413,7 +418,7 @@ impl Game {
                     self.ticket_text.clear();
                     self.set_phase(Phase::Ticket);
                 }
-                4..=7 => {}
+                4..=8 => {}
                 _ => self.exit = true,
             }
         }
@@ -649,6 +654,11 @@ impl Game {
                     if who as usize == me {
                         audio.play(Sfx::Spawn, 0.6);
                     }
+                }
+                Event::TeamWon { team } => {
+                    audio.play(Sfx::Win, 0.9);
+                    let line = format!("{} team wins the match!", crate::world::TEAM_NAMES[team as usize % 2]);
+                    self.feed.push_back((line, self.time));
                 }
                 Event::Won { who } => {
                     audio.play(Sfx::Win, 0.9);

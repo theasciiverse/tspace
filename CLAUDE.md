@@ -273,7 +273,11 @@ in the same folder.
   picks the arena (title menu or `--arena`); `Welcome` tells the guest,
   and a guest without that arena leaves with a message. The title
   backdrop always shows the Foundry.
-- **Match:** free-for-all, first to 15 kills, then 10 s of scores and a
+- **Match:** free-for-all, first to 15 kills, or teams (Red against
+  Blue, first team to 25; `State::teams`, `Player::team`,
+  `World::foes` decides who can hurt whom: shots pass through
+  teammates, mines ignore them, blasts spare them; newcomers join the
+  smaller team; team shades of red and blue). Then 10 s of scores and a
   new match. 3 s respawn, 1.5 s spawn guard (cancelled by firing). A
   ship change warps you out for 1.2 s and counts as no death. No self
   damage.
@@ -287,7 +291,7 @@ in the same folder.
   ALPN `tspace/1`, LAN beacon on UDP 31459, torched-style tickets
   (`tspace` + base32 of the iroh address). The host emits its ticket
   once iroh is online (up to 8 s); LAN play needs no internet.
-- **Guest prediction (protocol 2; 3 adds the hit flash to the state):** guests number their inputs
+- **Guest prediction (protocol 2; 3 adds the hit flash, 4 teams):** guests number their inputs
   (`Msg::Input { seq, .. }`). The host queues each guest's inputs and
   applies one per tick (a backlog over 3 is caught up at once), and every
   frame carries `acks`, the last input applied per guest slot. The guest
@@ -338,7 +342,7 @@ in the same folder.
 ## Verifying
 
 ```bash
-cargo test --release      # 25 tests: movement, arena, rules, prediction replay, bots fight, frame size, tickets, sound
+cargo test --release      # 27 tests: movement, arena, rules, teams, prediction replay, bots fight, frame size, tickets, sound, screens draw
 cargo clippy --release
 cargo test --release balance -- --ignored --nocapture   # bots per ship, ~10 s
 ```

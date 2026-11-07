@@ -21,6 +21,7 @@ cargo run --release -- --join TICKET   # join across the internet
 cargo run --release -- --demo          # watch eight bots
 cargo run --release -- --bots 7 --skill hard --ship weaver
 cargo run --release -- --arena hollow --bots 2   # the small arena
+cargo run --release -- --teams --play            # Red against Blue
 ```
 
 You need a truecolour terminal with UTF-8, at least 60x20; 100x30 or bigger
@@ -51,6 +52,13 @@ Gamepad: left stick or d-pad flies (up thrusts, down brakes, sideways
 turns), right trigger fires, left trigger is the afterburner, A bomb, X
 mine, Y scores, B or Start menu, Back help. Pads from SDL's controller
 list are used; `TSPACE_ANY_PAD=1` accepts any.
+
+## Modes
+
+- **Free-for-all:** everyone for themselves, first to 15 kills.
+- **Teams:** Red against Blue, first team to 25 kills. Teammates can't
+  hurt each other, and each team flies in its own colours. Newcomers join
+  the smaller team. Pick it on the title (*Mode*) or with `--teams`.
 
 ## Arenas
 

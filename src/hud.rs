@@ -2,7 +2,8 @@
 //! cards (title, scores, help, menus), all in plain text cells.
 
 use crate::game::{Game, MENU, PAUSE_MENU, Phase, Role, TOAST_FOR};
-use crate::render::{self, SLOT_COLOURS, dim, pickup_colour};
+use crate::render::{self, dim, pickup_colour, player_colour, team_colour};
+use crate::world::TEAM_NAMES;
 use crate::ships;
 use crate::world::PickupKind;
 use ratatui::Frame;
@@ -55,7 +56,7 @@ pub fn draw(f: &mut Frame, g: &Game) {
         }
         Phase::Play => {
             if let Some((winner, left)) = g.world.s.over {
-                let name = g.world.player(winner as usize).map_or("?".into(), |p| p.name.clone());
+                let name = if g.world.s.teams { format!("{} team", TEAM_NAMES[winner as usize % 2]) } else { g.world.player(winner as usize).map_or("?".into(), |p| p.name.clone()) };
                 scores(f, g, full, Some(format!("{name} wins! Next match in {}s", left.ceil() as i32)));
             } else if g.scores {
                 scores(f, g, full, None);
@@ -134,7 +135,7 @@ fn toast(f: &mut Frame, g: &Game, full: Rect) {
 fn status(f: &mut Frame, g: &Game, area: Rect) {
     let Some(p) = g.world.player(g.me) else { return };
     let st = p.kind.stats();
-    let mut spans = vec![Span::styled(format!(" {} ", st.name), Style::default().fg(INK).bg(SLOT_COLOURS[g.me % 8]).add_modifier(Modifier::BOLD)), Span::raw(" ")];
+    let mut spans = vec![Span::styled(format!(" {} ", st.name), Style::default().fg(INK).bg(player_colour(&g.world, g.me)).add_modifier(Modifier::BOLD)), Span::raw(" ")];
     let bar_w = 20usize;
     let frac = if p.max_energy > 0.0 { (p.energy / p.max_energy).clamp(0.0, 1.0) } else { 0.0 };
     let filled = (frac * bar_w as f32).round() as usize;
@@ -152,6 +153,9 @@ fn status(f: &mut Frame, g: &Game, area: Rect) {
     spans.push(Span::styled("░".repeat(bar_w - filled), Style::default().fg(dim(colour, 0.35))));
     spans.push(Span::styled(format!(" {:>4}/{:<4} ", p.energy as i32, p.max_energy as i32), Style::default().fg(TEXT)));
     spans.push(Span::styled(format!(" K {} D {} ", p.kills, p.deaths), Style::default().fg(TEXT)));
+    if g.world.s.teams {
+        spans.extend(team_line(g).spans);
+    }
     let mines = g.world.s.mines.iter().filter(|m| m.owner as usize == g.me).count();
     spans.push(Span::styled(format!(" mines {}/{} ", st.mines as usize - mines.min(st.mines as usize), st.mines), Style::default().fg(MUTED)));
     for (t, kind) in [(p.scatter, PickupKind::Scatter), (p.shroud, PickupKind::Shroud), (p.overdrive, PickupKind::Overdrive)] {
@@ -206,16 +210,21 @@ fn scores(f: &mut Frame, g: &Game, full: Rect, headline: Option<String>) {
         lines.push(Line::from(Span::styled(h.clone(), Style::default().fg(WARN).add_modifier(Modifier::BOLD))));
         lines.push(Line::from(""));
     }
+    if g.world.s.teams {
+        lines.push(team_line(g));
+        lines.push(Line::from(""));
+    }
     lines.push(Line::from(Span::styled(format!("{:<3}{:<14}{:<8}{:>6}{:>7}", "", "Pilot", "Ship", "Kills", "Deaths"), Style::default().fg(MUTED))));
     for (rank, &i) in g.world.ranking().iter().enumerate() {
         let p = g.world.player(i).unwrap();
         let tag = if p.bot { "·" } else { " " };
-        let style = if i == g.me { Style::default().fg(SLOT_COLOURS[i % 8]).add_modifier(Modifier::BOLD) } else { Style::default().fg(SLOT_COLOURS[i % 8]) };
+        let style = if i == g.me { Style::default().fg(player_colour(&g.world, i)).add_modifier(Modifier::BOLD) } else { Style::default().fg(player_colour(&g.world, i)) };
         let name: String = p.name.chars().take(12).collect();
         lines.push(Line::from(Span::styled(format!("{:<3}{:<13}{}{:<8}{:>6}{:>7}", rank + 1, name, tag, p.kind.stats().name, p.kills, p.deaths), style)));
     }
     lines.push(Line::from(""));
-    lines.push(hint_line(&format!("First to {} kills wins. · marks a bot.", g.world.s.kill_limit)));
+    let goal = if g.world.s.teams { format!("First team to {} kills wins.", g.world.s.kill_limit) } else { format!("First to {} kills wins.", g.world.s.kill_limit) };
+    lines.push(hint_line(&format!("{goal} · marks a bot.")));
     if let Role::Host(_) = &g.role {
         lines.push(Line::from(""));
         match g.host_ticket() {
@@ -250,9 +259,10 @@ fn title(f: &mut Frame, g: &Game, full: Rect) {
     for (i, item) in MENU.iter().enumerate() {
         let value = match i {
             4 => format!(" ‹ {} ›", arena_name(g.settings.arena)),
-            5 => format!(" ‹ {} ›", g.settings.bots),
-            6 => format!(" ‹ {} ›", g.settings.level.name()),
-            7 => format!(" ‹ {} ›", g.settings.ship.stats().name),
+            5 => format!(" ‹ {} ›", if g.settings.teams { "Teams" } else { "Free-for-all" }),
+            6 => format!(" ‹ {} ›", g.settings.bots),
+            7 => format!(" ‹ {} ›", g.settings.level.name()),
+            8 => format!(" ‹ {} ›", g.settings.ship.stats().name),
             _ => String::new(),
         };
         let text = format!("{item}{value}");
@@ -265,8 +275,10 @@ fn title(f: &mut Frame, g: &Game, full: Rect) {
             "hollow" => "small, for two to four · ← → to change".to_string(),
             _ => "big, for up to eight · ← → to change".to_string(),
         },
-        7 => g.settings.ship.stats().blurb.to_string(),
-        5 | 6 => "← → to change".to_string(),
+        5 if g.settings.teams => "Red against Blue, no friendly fire · ← →".to_string(),
+        5 => "everyone for themselves · ← → to change".to_string(),
+        8 => g.settings.ship.stats().blurb.to_string(),
+        6 | 7 => "← → to change".to_string(),
         _ => "↑↓ choose · Enter go · H help · Esc quit".to_string(),
     };
     lines.push(hint_line(&blurb));
@@ -276,6 +288,12 @@ fn title(f: &mut Frame, g: &Game, full: Rect) {
     if area.y + area.height < full.height {
         f.render_widget(Paragraph::new(credit).style(Style::default().fg(MUTED).bg(INK)), Rect { x: full.x + (full.width - w) / 2, y: full.height - 1, width: w, height: 1 });
     }
+}
+
+/// "Red 12 · Blue 9", in the teams' colours.
+fn team_line(g: &Game) -> Line<'static> {
+    let t = |k: u8| Span::styled(format!(" {} {} ", TEAM_NAMES[k as usize], g.world.team_kills(k)), Style::default().fg(team_colour(k)).add_modifier(Modifier::BOLD));
+    Line::from(vec![t(0), Span::styled("·", Style::default().fg(MUTED)), t(1)])
 }
 
 fn arena_name(id: &str) -> String {
@@ -341,4 +359,38 @@ fn help(f: &mut Frame, full: Rect) {
         hint_line("Esc or Enter closes this"),
     ];
     card(f, full, "How to fly", lines, ACCENT, 72);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::audio::Audio;
+    use crate::bots::Level;
+    use crate::game::{Settings, Start};
+    use crate::input::Input;
+    use crate::ships::Kind;
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
+
+    /// The whole screen draws, in both modes and both arenas, at the
+    /// recording size and a small one, with the scores card up.
+    #[test]
+    fn screens_draw() {
+        for (arena, teams) in [("foundry", false), ("hollow", true)] {
+            let settings = Settings { arena, teams, bots: 5, level: Level::Hard, ship: Kind::Lance };
+            let mut g = Game::new(Start::Demo, settings, true);
+            let (mut input, mut audio) = (Input::new(true), Audio::new(true));
+            for _ in 0..600 {
+                g.tick(&mut input, &mut audio);
+            }
+            for (w, h) in [(100, 30), (60, 20), (40, 10)] {
+                let mut t = Terminal::new(TestBackend::new(w, h)).unwrap();
+                t.draw(|f| draw(f, &g)).unwrap();
+                g.scores = true;
+                t.draw(|f| draw(f, &g)).unwrap();
+                g.scores = false;
+            }
+            assert_eq!(g.world.s.teams, teams);
+        }
+    }
 }

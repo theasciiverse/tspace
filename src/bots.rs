@@ -263,7 +263,7 @@ fn pick_target(w: &World, me: usize, p: &Player) -> Option<usize> {
     let mut best: Option<(f32, usize)> = None;
     for (j, t) in w.s.players.iter().enumerate() {
         let Some(t) = t else { continue };
-        if j == me || !t.alive {
+        if !w.foes(me, j) || !t.alive {
             continue;
         }
         let d = (t.x - p.x).hypot(t.y - p.y);

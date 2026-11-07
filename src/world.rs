@@ -11,6 +11,9 @@ use serde::{Deserialize, Serialize};
 
 pub const MAX_PLAYERS: usize = 8;
 pub const KILL_LIMIT: u32 = 15;
+/// Team games play to this many kills for the team.
+pub const TEAM_KILL_LIMIT: u32 = 25;
+pub const TEAM_NAMES: [&str; 2] = ["Red", "Blue"];
 const RESPAWN: f32 = 3.0;
 const WARP_OUT: f32 = 1.2;
 const SPAWN_GUARD: f32 = 1.5;
@@ -91,6 +94,8 @@ pub struct Player {
     pub thrusting: bool,
     pub burning: bool,
     pub last_hit: Option<u8>,
+    /// 0 or 1 in a team game (unused in free-for-all).
+    pub team: u8,
     /// Seconds of the white flash after a hit.
     pub flash: f32,
 }
@@ -122,6 +127,7 @@ impl Player {
             burning: false,
             last_hit: None,
             flash: 0.0,
+            team: 0,
         }
     }
 
@@ -187,6 +193,7 @@ pub enum Event {
     Pickup { who: u8, kind: PickupKind },
     Spawn { who: u8 },
     Won { who: u8 },
+    TeamWon { team: u8 },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -196,8 +203,11 @@ pub struct State {
     pub shots: Vec<Shot>,
     pub mines: Vec<Mine>,
     pub spots: Vec<Spot>,
-    /// Winner and seconds left until the next match.
+    /// Winner (a player, or a team in a team game) and seconds left until
+    /// the next match.
     pub over: Option<(u8, f32)>,
+    /// Two teams instead of everyone for themselves.
+    pub teams: bool,
     pub kill_limit: u32,
     pub rng: u64,
 }
@@ -225,6 +235,7 @@ impl World {
                 spots,
                 over: None,
                 kill_limit: KILL_LIMIT,
+                teams: false,
                 rng: seed | 1,
             },
             events: Vec::new(),
@@ -242,8 +253,37 @@ impl World {
     pub fn add_player(&mut self, name: String, bot: bool, kind: Kind) -> Option<usize> {
         let slot = self.s.players.iter().position(|p| p.is_none())?;
         log::info!("player {slot} joins: {name} (bot {bot}, {:?})", kind);
-        self.s.players[slot] = Some(Player::new(name, bot, kind));
+        let mut p = Player::new(name, bot, kind);
+        // join the smaller team
+        let reds = self.s.players.iter().flatten().filter(|q| q.team == 0).count();
+        let blues = self.s.players.iter().flatten().filter(|q| q.team == 1).count();
+        p.team = (blues < reds) as u8;
+        self.s.players[slot] = Some(p);
         Some(slot)
+    }
+
+    /// Team game on or off; call before adding players.
+    pub fn set_teams(&mut self, on: bool) {
+        self.s.teams = on;
+        self.s.kill_limit = if on { TEAM_KILL_LIMIT } else { KILL_LIMIT };
+    }
+
+    /// Can `a` hurt `b`? Never itself, and never a teammate.
+    pub fn foes(&self, a: usize, b: usize) -> bool {
+        if a == b {
+            return false;
+        }
+        if !self.s.teams {
+            return true;
+        }
+        match (self.player(a), self.player(b)) {
+            (Some(p), Some(q)) => p.team != q.team,
+            _ => true,
+        }
+    }
+
+    pub fn team_kills(&self, team: u8) -> u32 {
+        self.s.players.iter().flatten().filter(|p| p.team == team).map(|p| p.kills).sum()
     }
 
     pub fn remove_player(&mut self, slot: usize) {
@@ -280,12 +320,19 @@ impl World {
         self.step_shots(dt);
         self.step_mines(dt);
         self.step_spots(dt);
-        if self.s.over.is_none()
-            && let Some((i, _)) = self.s.players.iter().enumerate().filter_map(|(i, p)| p.as_ref().map(|p| (i, p))).find(|(_, p)| p.kills >= self.s.kill_limit) {
+        if self.s.over.is_none() {
+            if self.s.teams {
+                if let Some(team) = (0..2u8).find(|&t| self.team_kills(t) >= self.s.kill_limit) {
+                    log::info!("match won by team {team}");
+                    self.s.over = Some((team, NEXT_MATCH_AFTER));
+                    self.events.push(Event::TeamWon { team });
+                }
+            } else if let Some((i, _)) = self.s.players.iter().enumerate().filter_map(|(i, p)| p.as_ref().map(|p| (i, p))).find(|(_, p)| p.kills >= self.s.kill_limit) {
                 log::info!("match won by player {i}");
                 self.s.over = Some((i as u8, NEXT_MATCH_AFTER));
                 self.events.push(Event::Won { who: i as u8 });
             }
+        }
     }
 
     fn next_match(&mut self) {
@@ -444,7 +491,7 @@ impl World {
             // ships in the way
             for (j, p) in self.s.players.iter().enumerate() {
                 let Some(p) = p else { continue };
-                if !p.alive || j == s.owner as usize {
+                if !p.alive || !self.foes(s.owner as usize, j) {
                     continue;
                 }
                 if (p.x - s.x).hypot(p.y - s.y) <= p.radius() + 2.0 {
@@ -484,7 +531,7 @@ impl World {
             if m.age < MINE_ARM {
                 return true;
             }
-            let near = self.s.players.iter().enumerate().any(|(j, p)| p.as_ref().is_some_and(|p| p.alive && j != m.owner as usize && (p.x - m.x).hypot(p.y - m.y) <= MINE_REACH + p.radius()));
+            let near = self.s.players.iter().enumerate().any(|(j, p)| p.as_ref().is_some_and(|p| p.alive && self.foes(m.owner as usize, j) && (p.x - m.x).hypot(p.y - m.y) <= MINE_REACH + p.radius()));
             if near {
                 blasts.push((m.x, m.y, MINE_BLAST, m.damage, m.owner));
                 return false;
@@ -537,7 +584,7 @@ impl World {
         let mut hurt = Vec::new();
         for (j, p) in self.s.players.iter().enumerate() {
             let Some(p) = p else { continue };
-            if !p.alive || j == by as usize {
+            if !p.alive || !self.foes(by as usize, j) {
                 continue;
             }
             let reach = r + p.radius();
@@ -778,6 +825,34 @@ mod tests {
         }
         let (h, g) = (host.player(0).unwrap(), guest.player(0).unwrap());
         assert_eq!((h.x, h.y, h.vx, h.vy, h.orient), (g.x, g.y, g.vx, g.vy, g.orient));
+    }
+
+    #[test]
+    fn teams_split_and_spare_friends() {
+        let mut w = World::new("foundry", 9);
+        w.set_teams(true);
+        for k in 0..4 {
+            w.add_player(format!("p{k}"), true, ships::ALL[k]);
+        }
+        let teams: Vec<u8> = w.s.players.iter().flatten().map(|p| p.team).collect();
+        assert_eq!(teams, vec![0, 1, 0, 1]);
+        assert!(!w.foes(0, 2) && w.foes(0, 1) && !w.foes(1, 1));
+        run(&mut w, 1.0, &[]);
+        // a mine of player 0 ignores teammate 2, takes out foe 1
+        let (x, y) = Arena::centre((40, 36));
+        w.s.mines.push(Mine { owner: 0, x, y, age: 1.0, damage: 5000.0 });
+        for (slot, dx) in [(2usize, 0.0f32), (1, 400.0)] {
+            let p = w.s.players[slot].as_mut().unwrap();
+            (p.x, p.y, p.vx, p.vy, p.guard) = (x + dx, y, 0.0, 0.0, 0.0);
+        }
+        w.step(1.0 / 60.0, &[]);
+        assert!(w.player(2).unwrap().alive && w.s.mines.len() == 1);
+        let p = w.s.players[1].as_mut().unwrap();
+        (p.x, p.y) = (x + 10.0, y);
+        w.step(1.0 / 60.0, &[]);
+        // the blast spares the teammate standing on it
+        assert!(!w.player(1).unwrap().alive && w.player(2).unwrap().alive);
+        assert_eq!(w.team_kills(0), 1);
     }
 
     #[test]

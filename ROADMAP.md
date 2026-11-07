@@ -28,5 +28,5 @@ All eight phases built on 2026-11-07 as v0.1.0; play-testing comes next.
 - [x] Gamepad, gilrs as Panzer (2026-11-07)
 - [x] Second arena, Hollow, for two to four (2026-11-07)
 - More ships, arenas and pickups
-- Team modes
+- [x] Team mode, Red against Blue (2026-11-07)
 - zubspace.gg backend, only with Peter's agreement

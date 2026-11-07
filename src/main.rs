@@ -38,6 +38,7 @@ In the game, H shows the controls.
   --join            look for games on the local network
   --join TICKET     join a host by its invite ticket (works across the internet)
   --arena NAME      foundry (big, up to eight) or hollow (small, two to four)
+  --teams           Red against Blue instead of everyone for themselves
   --bots N          bots in your games, 0-7 (default 5)
   --skill LEVEL     easy, medium or hard (default medium)
   --ship NAME       dart, lance, anvil or weaver (default lance)
@@ -75,7 +76,7 @@ struct Args {
 
 fn parse_args() -> Result<Option<Args>, String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let mut a = Args { start: Start::Title, settings: Settings { arena: game::DEMO_ARENA, bots: 5, level: bots::Level::Medium, ship: ships::Kind::Lance }, mute: false };
+    let mut a = Args { start: Start::Title, settings: Settings { arena: game::DEMO_ARENA, teams: false, bots: 5, level: bots::Level::Medium, ship: ships::Kind::Lance }, mute: false };
     let mut i = 0;
     let value = |i: usize, flag: &str| args.get(i + 1).filter(|v| !v.starts_with("--")).cloned().ok_or(format!("{flag} needs a value"));
     while i < args.len() {
@@ -92,6 +93,7 @@ fn parse_args() -> Result<Option<Args>, String> {
             "--demo" => a.start = Start::Demo,
             "--host" => a.start = Start::Host,
             "--mute" => a.mute = true,
+            "--teams" => a.settings.teams = true,
             "--join" => match args.get(i + 1).filter(|v| !v.starts_with("--")) {
                 Some(t) => {
                     a.start = Start::Join(net::decode_ticket(t)?);

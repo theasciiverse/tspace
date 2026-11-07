@@ -25,6 +25,26 @@ pub const SLOT_COLOURS: [Color; 8] = [
     Color::Rgb(235, 235, 235),
 ];
 
+/// Team games: red and blue, a few shades each so teammates differ.
+const TEAM_COLOURS: [[Color; 4]; 2] = [
+    [Color::Rgb(255, 95, 95), Color::Rgb(255, 150, 110), Color::Rgb(230, 80, 140), Color::Rgb(255, 185, 160)],
+    [Color::Rgb(90, 170, 255), Color::Rgb(120, 215, 255), Color::Rgb(120, 130, 255), Color::Rgb(170, 200, 255)],
+];
+
+pub fn team_colour(team: u8) -> Color {
+    TEAM_COLOURS[team as usize % 2][0]
+}
+
+/// A player's colour: by slot, or by team in a team game.
+pub fn player_colour(w: &World, i: usize) -> Color {
+    if !w.s.teams {
+        return SLOT_COLOURS[i % 8];
+    }
+    let team = w.player(i).map_or(0, |p| p.team);
+    let shade = (0..i).filter(|&j| w.player(j).is_some_and(|q| q.team == team)).count();
+    TEAM_COLOURS[team as usize % 2][shade % 4]
+}
+
 const EDGE: Color = Color::Rgb(110, 145, 200);
 const FILL: Color = Color::Rgb(52, 66, 98);
 const STAR: Color = Color::Rgb(70, 76, 96);
@@ -157,7 +177,7 @@ impl Fx {
                     }
             }
             Event::Died { who, x, y, .. } => {
-                let c = SLOT_COLOURS[who as usize % 8];
+                let c = player_colour(w, who as usize);
                 self.burst(x, y, 40, 260.0, 0.9, c);
                 self.burst(x, y, 20, 120.0, 0.6, Color::Rgb(255, 255, 255));
                 self.rings.push(Ring { x, y, r: 40.0, t: 0.0 });
@@ -336,7 +356,7 @@ pub fn draw_world(buf: &mut Buffer, area: Rect, w: &World, me: usize, centre: (f
     for m in &w.s.mines {
         let (sx, sy) = to(m.x, m.y);
         let (sx, sy) = (sx.round() as i32, sy.round() as i32);
-        let col = SLOT_COLOURS[m.owner as usize % 8];
+        let col = player_colour(w, m.owner as usize);
         let on = m.age < 0.7 || (time * 3.0).fract() < 0.7;
         let col = if on { col } else { dim(col, 0.45) };
         for (dx, dy) in [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)] {
@@ -345,7 +365,7 @@ pub fn draw_world(buf: &mut Buffer, area: Rect, w: &World, me: usize, centre: (f
     }
     // shots with a short trail
     for s in &w.s.shots {
-        let col = SLOT_COLOURS[s.owner as usize % 8];
+        let col = player_colour(w, s.owner as usize);
         let (sx, sy) = to(s.x, s.y);
         let (tx, ty) = to(s.x - s.vx * 0.012, s.y - s.vy * 0.012);
         match s.kind {
@@ -388,7 +408,7 @@ pub fn draw_world(buf: &mut Buffer, area: Rect, w: &World, me: usize, centre: (f
         if p.guard > 0.0 && (time * 8.0).fract() < 0.35 {
             continue;
         }
-        let col = SLOT_COLOURS[i % 8];
+        let col = player_colour(w, i);
         if p.shroud > 0.0 && !mine {
             if let Some(m) = w.player(me).filter(|m| m.alive)
                 && (m.x - p.x).hypot(m.y - p.y) > 220.0 {
@@ -427,7 +447,7 @@ pub fn draw_names(buf: &mut Buffer, area: Rect, w: &World, me: usize, cam: (i32,
             }
             if let Some(cell) = buf.cell_mut((area.x + x as u16, area.y + row as u16))
                 && cell.symbol() == " " {
-                    cell.set_char(ch).set_fg(dim(SLOT_COLOURS[i % 8], 0.7));
+                    cell.set_char(ch).set_fg(dim(player_colour(w, i), 0.7));
                 }
         }
     }
@@ -478,8 +498,8 @@ pub fn draw_radar(buf: &mut Buffer, area: Rect, w: &World, me: usize, blink: boo
                 }
             }
         } else {
-            c.dot(dx, dy, SLOT_COLOURS[i % 8], 8);
-            c.dot(dx + 1, dy, SLOT_COLOURS[i % 8], 8);
+            c.dot(dx, dy, player_colour(w, i), 8);
+            c.dot(dx + 1, dy, player_colour(w, i), 8);
         }
     }
     c.blit(buf, area);
