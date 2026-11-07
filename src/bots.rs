@@ -453,7 +453,7 @@ mod tests {
     }
 
     /// A quick look that bots fight: four of them for a simulated two
-    /// minutes should shoot each other down a few times.
+    /// minutes should shoot each other down a few times and take pickups.
     #[test]
     fn bots_fight() {
         let mut w = World::new("foundry", 3);
@@ -462,13 +462,23 @@ mod tests {
             let ship = b.pick_ship();
             w.add_player(NAMES[k].into(), true, ship);
         }
+        let (mut pickups, mut pulses) = (0, 0);
         for _ in 0..60 * 120 {
             let c: Vec<Controls> = brains.iter_mut().enumerate().map(|(i, b)| b.think(&w, i, 1.0 / 60.0)).collect();
             w.step(1.0 / 60.0, &c);
-            w.events.clear();
+            for e in w.events.drain(..) {
+                match e {
+                    crate::world::Event::Pickup { .. } => pickups += 1,
+                    crate::world::Event::Pulse { .. } => pulses += 1,
+                    _ => {}
+                }
+            }
         }
         let kills: u32 = w.s.players.iter().flatten().map(|p| p.kills).sum();
         assert!(kills >= 3, "only {kills} kills in two minutes");
+        // they go for pickups too, and a Repulsor goes off now and then
+        assert!(pickups >= 5, "only {pickups} pickups taken");
+        println!("kills {kills} pickups {pickups} repulsor pulses {pulses}");
     }
 }
 

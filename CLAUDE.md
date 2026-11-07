@@ -206,9 +206,10 @@ state are in `ROADMAP.md`.
   ammo and recharges.
 - **Pickups:** Overcharge (more max energy this life), Scatter (spread
   shot), Shroud (off radar for a while), Overdrive (speed boost),
-  Repulsor (added later: an instant shockwave, 150 px, that shoves foes
-  away at 520 px/s, capped under a tile per step, and clears their shots
-  and mines nearby; no damage; `Event::Pulse`).
+  Repulsor (added later: an instant shockwave, 150 px, that adds 520 px/s
+  away from you to nearby foes, which their next step clips to their own
+  top speed, so in practice a hard shove to full speed outwards; it also
+  clears their shots and mines nearby; no damage; `Event::Pulse`).
 - **Arenas:** our own text grids in `arenas/*.txt`, size per arena; one
   tile is 2x1 cells, 4x4 Braille dots.
 - **Bots:** our own, small: target, lead the aim, avoid walls, keep energy.
