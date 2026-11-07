@@ -122,6 +122,8 @@ pub struct Game {
     pub spectate: bool,
     /// A gamepad is connected (no keyboard tip needed).
     pub pad: bool,
+    /// The low-energy beep has sounded for this dip.
+    low_warned: bool,
     /// Guest: the host's events not yet turned into effects and sounds.
     pending: Vec<Event>,
     ticks: u64,
@@ -161,6 +163,7 @@ impl Game {
             exact_keys,
             spectate: false,
             pad: false,
+            low_warned: false,
             pending: Vec::new(),
             ticks: 0,
             seed,
@@ -524,6 +527,16 @@ impl Game {
         }
         if !frozen {
             self.fx.step(DT, &self.world);
+        }
+        // beep once each time our energy dips under a quarter
+        if let Some(p) = self.world.player(self.me).filter(|p| p.alive && !self.spectate) {
+            let frac = p.energy / p.max_energy.max(1.0);
+            if frac < 0.25 && !self.low_warned {
+                self.low_warned = true;
+                audio.play(Sfx::Low, 0.7);
+            } else if frac > 0.4 {
+                self.low_warned = false;
+            }
         }
         let engine = self.world.player(self.me).filter(|p| p.alive && p.thrusting).map_or(0, |p| if p.burning { 2 } else { 1 });
         audio.set_engine(if frozen { 0 } else { engine });

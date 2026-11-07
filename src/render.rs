@@ -398,6 +398,8 @@ pub fn draw_world(buf: &mut Buffer, area: Rect, w: &World, me: usize, centre: (f
             continue;
         }
         let col = if mine && p.shroud > 0.0 { dim(col, 0.55) } else { col };
+        // a hit flashes the ship white for a moment
+        let col = if p.flash > 0.0 { Color::Rgb(255, 255, 255) } else { col };
         ship_shape(&mut c, p, cam, col, if mine { prio::ME } else { prio::SHIP }, false, 1.0);
     }
     c.blit(buf, area);

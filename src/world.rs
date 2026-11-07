@@ -91,6 +91,8 @@ pub struct Player {
     pub thrusting: bool,
     pub burning: bool,
     pub last_hit: Option<u8>,
+    /// Seconds of the white flash after a hit.
+    pub flash: f32,
 }
 
 impl Player {
@@ -119,6 +121,7 @@ impl Player {
             thrusting: false,
             burning: false,
             last_hit: None,
+            flash: 0.0,
         }
     }
 
@@ -556,6 +559,7 @@ impl World {
         }
         p.energy -= amount;
         p.last_hit = Some(by);
+        p.flash = 0.12;
         if p.energy > 0.0 {
             return;
         }
@@ -627,7 +631,7 @@ fn move_ship(arena: &Arena, p: &mut Player, c: Controls, dt: f32) -> bool {
     p.energy = out.state.energy;
     p.thrusting = out.applied_thrust != zs::AppliedThrust::None;
     p.burning = out.afterburning;
-    for t in [&mut p.gun_cd, &mut p.bomb_cd, &mut p.guard, &mut p.scatter, &mut p.shroud, &mut p.overdrive] {
+    for t in [&mut p.gun_cd, &mut p.bomb_cd, &mut p.guard, &mut p.scatter, &mut p.shroud, &mut p.overdrive, &mut p.flash] {
         *t = (*t - dt).max(0.0);
     }
     col.bounced && vel.length() > 60.0

@@ -142,8 +142,11 @@ fn status(f: &mut Frame, g: &Game, area: Rect) {
         Color::Rgb(110, 230, 120)
     } else if frac > 0.3 {
         Color::Rgb(240, 210, 80)
-    } else {
+    } else if frac > 0.25 || (g.time * 4.0).fract() < 0.5 {
         Color::Rgb(255, 90, 80)
+    } else {
+        // low energy: the bar pulses
+        Color::Rgb(120, 40, 36)
     };
     spans.push(Span::styled("█".repeat(filled), Style::default().fg(colour)));
     spans.push(Span::styled("░".repeat(bar_w - filled), Style::default().fg(dim(colour, 0.35))));

@@ -287,7 +287,7 @@ in the same folder.
   ALPN `tspace/1`, LAN beacon on UDP 31459, torched-style tickets
   (`tspace` + base32 of the iroh address). The host emits its ticket
   once iroh is online (up to 8 s); LAN play needs no internet.
-- **Guest prediction (protocol 2):** guests number their inputs
+- **Guest prediction (protocol 2; 3 adds the hit flash to the state):** guests number their inputs
   (`Msg::Input { seq, .. }`). The host queues each guest's inputs and
   applies one per tick (a backlog over 3 is caught up at once), and every
   frame carries `acks`, the last input applied per guest slot. The guest
@@ -300,6 +300,9 @@ in the same folder.
 - **Sound:** synthesised (`src/audio.rs`): chirp guns, bombs, blasts,
   hits, death, pickups, spawn, plus an engine voice for your own thrust.
   Other pilots' guns are quieter with distance.
+- **Feel:** a hit ship flashes white for 0.12 s (`Player::flash`, in
+  the state, so guests see it); under a quarter energy the bar pulses and
+  a double beep sounds once per dip (again after recovering past 40%).
 - **Input:** Panzer's rule. Exact with the kitty protocol, otherwise held
   keys are inferred from repeats. The game shows a tip in the first
   seconds when the protocol is missing and no pad is connected.

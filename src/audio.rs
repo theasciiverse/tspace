@@ -31,9 +31,10 @@ pub enum Sfx {
     Bounce,
     Select,
     Win,
+    Low,
 }
 
-const ALL_SFX: [Sfx; 12] = [Sfx::Gun, Sfx::GunFar, Sfx::Bomb, Sfx::Blast, Sfx::Hit, Sfx::Death, Sfx::MineSet, Sfx::Pickup, Sfx::Spawn, Sfx::Bounce, Sfx::Select, Sfx::Win];
+const ALL_SFX: [Sfx; 13] = [Sfx::Gun, Sfx::GunFar, Sfx::Bomb, Sfx::Blast, Sfx::Hit, Sfx::Death, Sfx::MineSet, Sfx::Pickup, Sfx::Spawn, Sfx::Bounce, Sfx::Select, Sfx::Win, Sfx::Low];
 
 pub struct Audio {
     // the sink must outlive everything playing on its mixer
@@ -141,6 +142,10 @@ fn tune(notes: &[(f32, f32)], gain: f32, wave: fn(f32) -> f32) -> Vec<f32> {
         let len = (d * SRF) as usize;
         for i in 0..len {
             let t = i as f32 / SRF;
+            if n <= 0.0 {
+                out.push(0.0); // a rest
+                continue;
+            }
             ph += midi(n) / SRF;
             let env = (t / 0.01).min(1.0) * ((d - t) / 0.03).clamp(0.0, 1.0);
             out.push(wave(ph) * env * gain);
@@ -200,6 +205,8 @@ fn render_sfx(s: Sfx) -> Vec<f32> {
         }
         Sfx::Bounce => synth(0.08, |t, n| ((TAU * 180.0 * t).sin() * 0.6 + n.next() * 0.4) * (-t * 50.0).exp() * 0.3),
         Sfx::Select => tune(&[(81.0, 0.04)], 0.18, tri),
+        // two short low beeps: energy is running out
+        Sfx::Low => tune(&[(64.0, 0.07), (0.0, 0.05), (64.0, 0.07)], 0.16, square),
         Sfx::Win => tune(&[(72.0, 0.12), (76.0, 0.12), (79.0, 0.12), (84.0, 0.5)], 0.22, square),
     }
 }
