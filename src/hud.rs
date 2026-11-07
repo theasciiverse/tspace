@@ -77,8 +77,13 @@ pub fn draw(f: &mut Frame, g: &Game) {
     }
 }
 
-/// Our ship, or where we died, or (on the title) whichever bot we follow.
+/// Our ship, or our killer while we wait to respawn, or where we died, or
+/// (on the title) whichever bot we follow.
 fn camera_centre(g: &Game) -> (f32, f32) {
+    // shot down: watch whoever did it until we are back
+    if let Some(k) = g.world.player(g.me).filter(|p| !p.alive && p.energy <= 0.0).and_then(|p| p.last_hit).and_then(|k| g.world.player(k as usize)).filter(|k| k.alive) {
+        return (k.x, k.y);
+    }
     match g.world.player(g.me) {
         Some(p) => (p.x, p.y),
         None => (g.world.arena.px_w() / 2.0, g.world.arena.px_h() / 2.0),

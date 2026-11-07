@@ -309,7 +309,9 @@ in the same folder.
 - **Bots** (`src/bots.rs`, header lists the behaviour): lead the aim,
   keep a distance per ship, flee under 22% energy (medium and hard, with
   the odd mine dropped behind), burn on long trips, brake before walls.
-- **Feel:** a hit ship flashes white for 0.12 s (`Player::flash`, in
+- **Feel:** while you wait to respawn, the camera follows whoever shot
+  you down (a real death, energy 0; a ship change keeps the camera
+  home). A hit ship flashes white for 0.12 s (`Player::flash`, in
   the state, so guests see it); under a quarter energy the bar pulses and
   a double beep sounds once per dip (again after recovering past 40%).
 - **Input:** Panzer's rule. Exact with the kitty protocol, otherwise held
