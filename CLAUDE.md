@@ -370,8 +370,10 @@ Checked 2026-11-07 in tmux at 100x30 and at the 60x20 minimum (help,
 credit line and kitty tip fitted to it), private socket `tmux -L tspace`:
 title, solo play, help, scores. Host plus a LAN guest plus a ticket
 guest, three processes on one machine over real iroh: joining, a guest's
-thrust reaching the host, the guest list, and a guest leaving. Not tried
-yet: two physical machines, a real internet join across NAT, or a
+thrust reaching the host, the guest list, and a guest leaving. Re-checked after protocol 5 (teams, streaks): a guest in a
+team game sees the team scores and the same feed, and over 30 s of
+thrusting and turning on the LAN no prediction correction passed 12 px.
+Not tried yet: two physical machines, a real internet join across NAT, or a
 person playing for any length of time (bot strength and ship balance are
 untuned).
 

@@ -233,7 +233,12 @@ fn scores(f: &mut Frame, g: &Game, full: Rect, headline: Option<String>) {
         lines.push(Line::from(""));
     }
     lines.push(Line::from(Span::styled(format!("{:<3}{:<14}{:<8}{:>6}{:>7}", "", "Pilot", "Ship", "Kills", "Deaths"), Style::default().fg(MUTED))));
-    for (rank, &i) in g.world.ranking().iter().enumerate() {
+    let mut order = g.world.ranking();
+    if g.world.s.teams {
+        // Red first, then Blue, each in ranking order
+        order.sort_by_key(|&i| g.world.player(i).map_or(0, |p| p.team));
+    }
+    for (rank, &i) in order.iter().enumerate() {
         let p = g.world.player(i).unwrap();
         let tag = if p.bot { "·" } else { " " };
         let style = if i == g.me { Style::default().fg(player_colour(&g.world, i)).add_modifier(Modifier::BOLD) } else { Style::default().fg(player_colour(&g.world, i)) };
