@@ -219,11 +219,22 @@ session log in `$XDG_STATE_HOME/tspace/session.log`.
 
 ## Open questions (David's to decide)
 
-- [ ] Trademark checks for tspace (EUIPO, PRH, USPTO) before announcing
+- [~] Trademark checks, 2026-11-07, by web search only (TMview, EUIPO
+      eSearch and PRH's service refuse automated queries, so this needs
+      a person to finish): no TSPACE mark found anywhere. Near marks in the
+      US, none for games or software: T-SPACE, Volkswagen (cars, classes
+      12/35/37, reg. 7362289); T-SPACE, Time Span Technology Shenzhen
+      (kitchenware 21, reg. 6797805; clothing 25, reg. 7468702); TESPACE
+      (vehicle parts, pending). Still to do by hand: TMview
+      (tmdn.org/tmview, covers EUIPO and PRH) and USPTO search for
+      "tspace" and "t space" in classes 9 and 41.
 - [x] Arenas: one first, our own text grids (2026-11-07)
 - [x] Ships: four of our own, more later (2026-11-07)
 - [x] Sound: synthesised at run time, as Panzer (2026-11-07)
-- [ ] When to write to Peter, and what to ask for
+- [ ] Writing to Peter: not needed for anything built. The MIT licence
+      allows our use as long as the notice is kept (THIRD_PARTY.md). Only
+      a zubspace.gg backend would need him (an allowed origin, notice of
+      protocol changes). A heads-up is optional courtesy.
 - [x] Licence: MIT (David, 2026-11-07), as Panzer; `LICENSE`, the
       Zubspace notice in `THIRD_PARTY.md`
 
