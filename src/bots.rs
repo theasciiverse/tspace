@@ -399,10 +399,10 @@ mod balance {
     #[test]
     #[ignore]
     fn balance() {
-        for arena in ["foundry", "hollow"] {
+        for arena in ["foundry", "lattice", "hollow"] {
             let mut kills = [0u32; 4];
             let mut deaths = [0u32; 4];
-            let players = if arena == "hollow" { 4 } else { 8 };
+            let players = match arena { "hollow" => 4, "lattice" => 6, _ => 8 };
             for seed in 0..4u32 {
                 let mut w = World::new(arena, 100 + seed as u64);
                 let mut brains: Vec<Brain> = (0..players).map(|k| Brain::new(Level::Hard, 7 + seed * 31 + k as u32)).collect();

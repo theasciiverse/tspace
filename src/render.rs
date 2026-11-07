@@ -445,10 +445,10 @@ pub fn draw_names(buf: &mut Buffer, area: Rect, w: &World, me: usize, cam: (i32,
             if x < 0 || x >= area.width as i32 {
                 continue;
             }
-            if let Some(cell) = buf.cell_mut((area.x + x as u16, area.y + row as u16))
-                && cell.symbol() == " " {
-                    cell.set_char(ch).set_fg(dim(player_colour(w, i), 0.7));
-                }
+            // the label wins over stars and walls behind it
+            if let Some(cell) = buf.cell_mut((area.x + x as u16, area.y + row as u16)) {
+                cell.set_char(ch).set_fg(dim(player_colour(w, i), 0.7));
+            }
         }
     }
 }

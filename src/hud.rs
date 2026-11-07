@@ -173,9 +173,12 @@ fn status(f: &mut Frame, g: &Game, area: Rect) {
         Role::Solo => " Tab scores · Esc menu · H help ".into(),
     };
     let used: usize = spans.iter().map(|s| s.content.chars().count()).sum();
-    let pad = (area.width as usize).saturating_sub(used + right.chars().count());
-    spans.push(Span::raw(" ".repeat(pad)));
-    spans.push(Span::styled(right, Style::default().fg(MUTED)));
+    // the hint on the right goes when the bar is full
+    if used + right.chars().count() <= area.width as usize {
+        let pad = area.width as usize - used - right.chars().count();
+        spans.push(Span::raw(" ".repeat(pad)));
+        spans.push(Span::styled(right, Style::default().fg(MUTED)));
+    }
     f.render_widget(Paragraph::new(Line::from(spans)).style(Style::default().bg(Color::Rgb(22, 26, 40))), area);
 }
 

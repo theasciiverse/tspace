@@ -355,6 +355,8 @@ each ship, four 5-minute matches per arena, kills and deaths per ship.
 got a little more energy, recharge, turn rate and gun. After that the
 Foundry runs 0.82-1.35 and the Hollow 0.95-1.03. Human play may say
 otherwise.
+The Lattice (six bots, added later): Dart 0.82, Lance 1.33, Anvil 0.98,
+Weaver 0.86; left alone until people have played it.
 
 Checked 2026-11-07 in tmux at 100x30 (private socket `tmux -L tspace`):
 title, solo play, help, scores. Host plus a LAN guest plus a ticket
