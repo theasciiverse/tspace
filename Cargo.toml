@@ -1,6 +1,6 @@
 [package]
 name = "tspace"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 description = "Asciiverse zero-friction arena space shooter drawn in Braille, with bots and LAN/internet play, Rust + Ratatui"
@@ -20,6 +20,11 @@ data-encoding = "2"
 iroh = "1.4"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "io-util"] }
 socket2 = { version = "0.6", features = ["all"] }
+gilrs = { version = "0.11", optional = true, default-features = false, features = ["xinput"] }
+
+[features]
+default = ["gamepad"]
+gamepad = ["dep:gilrs"]
 
 [profile.release]
 debug = 1

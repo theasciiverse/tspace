@@ -37,6 +37,7 @@ In the game, H shows the controls.
   --host            host a game (LAN players find it; Tab shows an invite ticket)
   --join            look for games on the local network
   --join TICKET     join a host by its invite ticket (works across the internet)
+  --arena NAME      foundry (big, up to eight) or hollow (small, two to four)
   --bots N          bots in your games, 0-7 (default 5)
   --skill LEVEL     easy, medium or hard (default medium)
   --ship NAME       dart, lance, anvil or weaver (default lance)
@@ -74,7 +75,7 @@ struct Args {
 
 fn parse_args() -> Result<Option<Args>, String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let mut a = Args { start: Start::Title, settings: Settings { bots: 5, level: bots::Level::Medium, ship: ships::Kind::Lance }, mute: false };
+    let mut a = Args { start: Start::Title, settings: Settings { arena: game::DEMO_ARENA, bots: 5, level: bots::Level::Medium, ship: ships::Kind::Lance }, mute: false };
     let mut i = 0;
     let value = |i: usize, flag: &str| args.get(i + 1).filter(|v| !v.starts_with("--")).cloned().ok_or(format!("{flag} needs a value"));
     while i < args.len() {
@@ -98,6 +99,11 @@ fn parse_args() -> Result<Option<Args>, String> {
                 }
                 None => a.start = Start::Browse,
             },
+            "--arena" => {
+                let v = value(i, "--arena")?.to_lowercase();
+                a.settings.arena = arena::BUILTIN.iter().map(|(id, _)| *id).find(|id| *id == v).ok_or(format!("--arena {v}: try foundry or hollow"))?;
+                i += 1;
+            }
             "--bots" => {
                 let v = value(i, "--bots")?;
                 a.settings.bots = v.parse::<usize>().map_err(|_| format!("--bots {v}: not a number"))?.min(7);
@@ -143,6 +149,7 @@ fn main() -> ExitCode {
     let _ = execute!(io::stdout(), EnableBracketedPaste);
     log::info!("kitty keyboard protocol: {kitty}");
     let mut input = Input::new(kitty);
+    input.open_pad();
     let mut game = Game::new(args.start, args.settings, kitty);
     let result = run(&mut terminal, &mut game, &mut input, &mut audio);
     let _ = execute!(io::stdout(), DisableBracketedPaste);
@@ -169,6 +176,7 @@ fn run(terminal: &mut ratatui::DefaultTerminal, game: &mut Game, input: &mut Inp
     let mut snapshot = Instant::now();
     loop {
         let frame_start = Instant::now();
+        input.poll_pad();
         while event::poll(Duration::ZERO)? {
             match event::read()? {
                 Event::Key(k) => {

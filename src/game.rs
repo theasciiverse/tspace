@@ -20,7 +20,8 @@ use std::collections::{HashMap, VecDeque};
 use std::time::Instant;
 
 pub const DT: f32 = 1.0 / 60.0;
-pub const ARENA: &str = "foundry";
+/// The title backdrop's arena.
+pub const DEMO_ARENA: &str = "foundry";
 const FEED_FOR: f32 = 6.0;
 pub const TOAST_FOR: f32 = 4.0;
 /// Frames to guests every this many ticks (60 Hz / 2 = 30 Hz).
@@ -38,7 +39,7 @@ pub enum Phase {
     Play,
 }
 
-pub const MENU: [&str; 8] = ["Play against bots", "Host a game", "Join a LAN game", "Join with a ticket", "Bots", "Bot skill", "Ship", "Quit"];
+pub const MENU: [&str; 9] = ["Play against bots", "Host a game", "Join a LAN game", "Join with a ticket", "Arena", "Bots", "Bot skill", "Ship", "Quit"];
 pub const PAUSE_MENU: [&str; 2] = ["Back to the game", "Leave"];
 
 /// How the program was started.
@@ -53,6 +54,7 @@ pub enum Start {
 }
 
 pub struct Settings {
+    pub arena: &'static str,
     pub bots: usize,
     pub level: Level,
     pub ship: Kind,
@@ -60,6 +62,11 @@ pub struct Settings {
 
 struct Remote {
     slot: usize,
+    /// The last input applied from this guest.
+    seq: u32,
+    /// Inputs received, applied one per tick (so the guest's replay of
+    /// unacknowledged inputs matches what the host did).
+    queue: VecDeque<(u32, Controls)>,
     name: String,
     held: Controls,
     bomb: bool,
@@ -78,6 +85,9 @@ pub struct Guest {
     net: Net,
     pub host_name: String,
     ping_t: f32,
+    seq: u32,
+    /// Inputs sent and not yet acknowledged by a frame, for the prediction.
+    unacked: VecDeque<(u32, Controls)>,
 }
 
 pub enum Role {
@@ -110,6 +120,8 @@ pub struct Game {
     pub exact_keys: bool,
     /// Watching a bots-only match.
     pub spectate: bool,
+    /// A gamepad is connected (no keyboard tip needed).
+    pub pad: bool,
     /// Guest: the host's events not yet turned into effects and sounds.
     pending: Vec<Event>,
     ticks: u64,
@@ -131,7 +143,7 @@ impl Game {
             time: 0.0,
             menu: 0,
             settings,
-            world: World::new(ARENA, seed),
+            world: World::new(DEMO_ARENA, seed),
             brains: (0..MAX_PLAYERS).map(|_| None).collect(),
             me: 0,
             role: Role::Solo,
@@ -148,6 +160,7 @@ impl Game {
             exit: false,
             exact_keys,
             spectate: false,
+            pad: false,
             pending: Vec::new(),
             ticks: 0,
             seed,
@@ -192,9 +205,9 @@ impl Game {
         self.seed
     }
 
-    fn fresh_world(&mut self) {
+    fn fresh_world(&mut self, arena: &str) {
         let seed = self.next_seed();
-        self.world = World::new(ARENA, seed);
+        self.world = World::new(arena, seed);
         self.brains = (0..MAX_PLAYERS).map(|_| None).collect();
         self.fx = Fx::default();
         self.feed.clear();
@@ -219,7 +232,7 @@ impl Game {
 
     /// The title's backdrop: bots fighting, the camera on one of them.
     fn demo(&mut self) {
-        self.fresh_world();
+        self.fresh_world(DEMO_ARENA);
         for _ in 0..6 {
             self.add_bot();
         }
@@ -228,7 +241,7 @@ impl Game {
 
     fn start_play(&mut self) {
         self.spectate = false;
-        self.fresh_world();
+        self.fresh_world(self.settings.arena);
         let name = self.name.clone();
         self.me = self.world.add_player(name, false, self.settings.ship).unwrap_or(0);
         for _ in 0..self.settings.bots.min(MAX_PLAYERS - 1) {
@@ -239,7 +252,7 @@ impl Game {
 
     fn start_demo(&mut self) {
         self.role = Role::Solo;
-        self.fresh_world();
+        self.fresh_world(self.settings.arena);
         for _ in 0..MAX_PLAYERS {
             self.add_bot();
         }
@@ -281,7 +294,7 @@ impl Game {
 
     fn join(&mut self, addr: iroh::EndpointAddr, host_name: String) {
         log::info!("joining {host_name}");
-        self.role = Role::Guest(Box::new(Guest { net: Net::join(addr, self.name.clone()), host_name, ping_t: 0.0 }));
+        self.role = Role::Guest(Box::new(Guest { net: Net::join(addr, self.name.clone()), host_name, ping_t: 0.0, seq: 0, unacked: VecDeque::new() }));
         self.set_phase(Phase::Connecting);
     }
 
@@ -302,6 +315,7 @@ impl Game {
         self.time += DT;
         self.phase_t += DT;
         self.ticks += 1;
+        self.pad = input.pad_name.is_some();
         let mut cmds: Vec<Cmd> = input.cmds.drain(..).collect();
         if self.phase == Phase::Ticket {
             // letters are ticket text here, not shortcuts
@@ -360,12 +374,17 @@ impl Game {
                 Cmd::Left | Cmd::Right => {
                     let up = *c == Cmd::Right;
                     match self.menu {
-                        4 => self.settings.bots = if up { (self.settings.bots + 1).min(MAX_PLAYERS - 1) } else { self.settings.bots.saturating_sub(1) },
-                        5 => {
+                        4 => {
+                            let ids: Vec<&'static str> = crate::arena::BUILTIN.iter().map(|(id, _)| *id).collect();
+                            let k = ids.iter().position(|&a| a == self.settings.arena).unwrap_or(0);
+                            self.settings.arena = ids[if up { (k + 1) % ids.len() } else { (k + ids.len() - 1) % ids.len() }];
+                        }
+                        5 => self.settings.bots = if up { (self.settings.bots + 1).min(MAX_PLAYERS - 1) } else { self.settings.bots.saturating_sub(1) },
+                        6 => {
                             let k = Level::ALL.iter().position(|&l| l == self.settings.level).unwrap_or(1);
                             self.settings.level = Level::ALL[if up { (k + 1) % 3 } else { (k + 2) % 3 }];
                         }
-                        6 => {
+                        7 => {
                             let k = self.settings.ship.index();
                             self.settings.ship = ships::ALL[if up { (k + 1) % 4 } else { (k + 3) % 4 }];
                         }
@@ -391,7 +410,7 @@ impl Game {
                     self.ticket_text.clear();
                     self.set_phase(Phase::Ticket);
                 }
-                4..=6 => {}
+                4..=7 => {}
                 _ => self.exit = true,
             }
         }
@@ -473,7 +492,15 @@ impl Game {
         let mine = if self.paused_menu.is_some() || self.help { Controls::default() } else { input.controls(Instant::now()) };
         let mine = if self.paused_menu.is_some() || self.help { Controls { ship: mine.ship, ..Default::default() } } else { mine };
         if let Role::Guest(g) = &mut self.role {
-            g.net.send(net::Cmd::Broadcast(Msg::Input(mine)));
+            g.seq = g.seq.wrapping_add(1);
+            g.net.send(net::Cmd::Broadcast(Msg::Input { seq: g.seq, controls: mine }));
+            g.unacked.push_back((g.seq, mine));
+            while g.unacked.len() > 240 {
+                g.unacked.pop_front();
+            }
+            // fly our own ship now; let the rest coast until the next frame
+            self.world.fly(self.me, mine, DT);
+            self.world.coast(self.me, DT);
             g.ping_t += DT;
             if g.ping_t > 2.0 {
                 g.ping_t = 0.0;
@@ -518,6 +545,20 @@ impl Game {
         }
         if let Role::Host(h) = &mut self.role {
             for r in h.guests.values_mut() {
+                // one input per tick; a backlog (a burst after a stall) is caught up
+                while r.queue.len() > 3 {
+                    let (seq, c) = r.queue.pop_front().unwrap();
+                    (r.seq, r.held) = (seq, c);
+                    r.bomb |= c.bomb;
+                    r.mine |= c.mine;
+                    r.ship = c.ship.or(r.ship);
+                }
+                if let Some((seq, c)) = r.queue.pop_front() {
+                    (r.seq, r.held) = (seq, c);
+                    r.bomb |= c.bomb;
+                    r.mine |= c.mine;
+                    r.ship = c.ship.or(r.ship);
+                }
                 let mut c = r.held;
                 c.bomb = std::mem::take(&mut r.bomb);
                 c.mine = std::mem::take(&mut r.mine);
@@ -613,7 +654,7 @@ impl Game {
             Role::Solo => return,
         }
         for e in evts {
-            if !matches!(e, Evt::ClientMsg { msg: Msg::Input(_) | Msg::Ping, .. } | Evt::HostMsg(Msg::Frame { .. })) {
+            if !matches!(e, Evt::ClientMsg { msg: Msg::Input { .. } | Msg::Ping, .. } | Evt::HostMsg(Msg::Frame { .. })) {
                 log::debug!("net {e:?}");
             }
             match e {
@@ -628,13 +669,8 @@ impl Game {
                 Evt::ClientMsg { client, msg } => {
                     let Role::Host(h) = &mut self.role else { continue };
                     let Some(r) = h.guests.get_mut(&client) else { continue };
-                    if let Msg::Input(c) = msg {
-                        r.held = c;
-                        r.bomb |= c.bomb;
-                        r.mine |= c.mine;
-                        if c.ship.is_some() {
-                            r.ship = c.ship;
-                        }
+                    if let Msg::Input { seq, controls: c } = msg {
+                        r.queue.push_back((seq, c));
                     }
                 }
                 Evt::ClientLeft { client } => {
@@ -650,16 +686,39 @@ impl Game {
                 Evt::Connected => log::info!("connected, waiting for the welcome"),
                 Evt::HostMsg(Msg::Welcome { slot, arena }) => {
                     let name = if let Role::Guest(g) = &self.role { g.host_name.clone() } else { String::new() };
-                    self.fresh_world();
-                    self.world = World::new(&arena, 1);
+                    if !crate::arena::BUILTIN.iter().any(|(id, _)| *id == arena) {
+                        self.leave(Some(format!("The host plays an arena this version lacks ({arena})")));
+                        continue;
+                    }
+                    self.fresh_world(&arena);
                     self.me = slot as usize;
                     self.set_phase(Phase::Play);
                     self.say(format!("Joined {name}'s game"));
                 }
-                Evt::HostMsg(Msg::Frame { state, events }) => {
+                Evt::HostMsg(Msg::Frame { state, events, acks }) => {
                     if self.phase == Phase::Play {
+                        let before = self.world.player(self.me).filter(|p| p.alive).map(|p| (p.x, p.y));
                         self.world.s = state;
                         self.guest_events(events);
+                        // replay what the host has not applied yet
+                        let me = self.me;
+                        if let Role::Guest(g) = &mut self.role {
+                            if let Some(&(_, ack)) = acks.iter().find(|(slot, _)| *slot as usize == me) {
+                                while g.unacked.front().is_some_and(|(seq, _)| seq.wrapping_sub(ack) as i32 <= 0) {
+                                    g.unacked.pop_front();
+                                }
+                            }
+                            for &(_, c) in &g.unacked {
+                                self.world.fly(me, c, DT);
+                            }
+                            // how far off the prediction was (latency, lost inputs, hits)
+                            if let (Some((bx, by)), Some(p)) = (before, self.world.player(me).filter(|p| p.alive)) {
+                                let off = (p.x - bx).hypot(p.y - by);
+                                if off > 12.0 {
+                                    log::debug!("prediction corrected by {off:.0} px ({} inputs pending)", g.unacked.len());
+                                }
+                            }
+                        }
                     }
                 }
                 Evt::HostMsg(Msg::Reject { reason }) => self.leave(Some(format!("Turned away: {reason}"))),
@@ -696,7 +755,7 @@ impl Game {
         };
         let Role::Host(h) = &mut self.role else { return };
         h.net.send(net::Cmd::SendTo(client, Msg::Welcome { slot: slot as u8, arena: self.world.arena_id.clone() }));
-        h.guests.insert(client, Remote { slot, name: name.clone(), held: Controls::default(), bomb: false, mine: false, ship: None });
+        h.guests.insert(client, Remote { slot, seq: 0, queue: VecDeque::new(), name: name.clone(), held: Controls::default(), bomb: false, mine: false, ship: None });
         self.say(format!("{name} joined"));
     }
 
@@ -724,7 +783,8 @@ impl Game {
             return;
         }
         let events = std::mem::take(&mut h.out);
-        h.net.send(net::Cmd::Broadcast(Msg::Frame { state: self.world.s.clone(), events }));
+        let acks = h.guests.values().map(|r| (r.slot as u8, r.seq)).collect();
+        h.net.send(net::Cmd::Broadcast(Msg::Frame { state: self.world.s.clone(), events, acks }));
     }
 }
 

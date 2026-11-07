@@ -24,8 +24,9 @@ All eight phases built on 2026-11-07 as v0.1.0; play-testing comes next.
 
 ## Later
 
-- Guest-side prediction of the guest's own ship, for internet latency
+- [x] Guest-side prediction of the guest's own ship (2026-11-07)
+- [x] Gamepad, gilrs as Panzer (2026-11-07)
+- [x] Second arena, Hollow, for two to four (2026-11-07)
 - More ships, arenas and pickups
-- Gamepad (gilrs, as Panzer)
 - Team modes
 - zubspace.gg backend, only with Peter's agreement

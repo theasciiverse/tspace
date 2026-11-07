@@ -39,7 +39,7 @@ pub fn draw(f: &mut Frame, g: &Game) {
         radar(f, g, view);
         feed(f, g, view);
         status(f, g, Rect { y: full.height - 1, height: 1, ..full });
-        if !g.exact_keys && g.time < 12.0 && !g.is_guest() && !g.spectate {
+        if !g.exact_keys && g.time < 12.0 && !g.is_guest() && !g.spectate && !g.pad {
             let hint = "Tip: a terminal with the kitty keyboard protocol lets you thrust, turn and fire at once";
             let w = (hint.len() as u16).min(view.width);
             f.render_widget(Paragraph::new(hint).style(Style::default().fg(MUTED)), Rect { x: view.x + (view.width - w) / 2, y: view.y + view.height - 1, width: w, height: 1 });
@@ -246,9 +246,10 @@ fn title(f: &mut Frame, g: &Game, full: Rect) {
     lines.push(Line::from(""));
     for (i, item) in MENU.iter().enumerate() {
         let value = match i {
-            4 => format!(" ‹ {} ›", g.settings.bots),
-            5 => format!(" ‹ {} ›", g.settings.level.name()),
-            6 => format!(" ‹ {} ›", g.settings.ship.stats().name),
+            4 => format!(" ‹ {} ›", arena_name(g.settings.arena)),
+            5 => format!(" ‹ {} ›", g.settings.bots),
+            6 => format!(" ‹ {} ›", g.settings.level.name()),
+            7 => format!(" ‹ {} ›", g.settings.ship.stats().name),
             _ => String::new(),
         };
         let text = format!("{item}{value}");
@@ -257,8 +258,12 @@ fn title(f: &mut Frame, g: &Game, full: Rect) {
     }
     lines.push(Line::from(""));
     let blurb = match g.menu {
-        6 => g.settings.ship.stats().blurb.to_string(),
-        4 | 5 => "← → to change".to_string(),
+        4 => match g.settings.arena {
+            "hollow" => "small, for two to four · ← → to change".to_string(),
+            _ => "big, for up to eight · ← → to change".to_string(),
+        },
+        7 => g.settings.ship.stats().blurb.to_string(),
+        5 | 6 => "← → to change".to_string(),
         _ => "↑↓ choose · Enter go · H help · Esc quit".to_string(),
     };
     lines.push(hint_line(&blurb));
@@ -268,6 +273,10 @@ fn title(f: &mut Frame, g: &Game, full: Rect) {
     if area.y + area.height < full.height {
         f.render_widget(Paragraph::new(credit).style(Style::default().fg(MUTED).bg(INK)), Rect { x: full.x + (full.width - w) / 2, y: full.height - 1, width: w, height: 1 });
     }
+}
+
+fn arena_name(id: &str) -> String {
+    crate::arena::BUILTIN.iter().find(|(a, _)| *a == id).and_then(|(_, t)| t.lines().find_map(|l| l.strip_prefix("name:"))).map_or(id.to_string(), |n| n.trim().to_string())
 }
 
 fn browse(f: &mut Frame, g: &Game, full: Rect) {
@@ -311,6 +320,7 @@ fn help(f: &mut Frame, full: Rect) {
         k("1 2 3 4", "Dart, Lance, Anvil, Weaver (warps you out)"),
         k("Tab", "scores (and the host's invite ticket)"),
         k("Esc", "menu · F8 sound · H this help"),
+        k("Gamepad", "stick flies · RT guns · LT burn · A bomb · X mine · Y scores"),
         Line::from(""),
         Line::from("Energy is your shield and your ammunition: it refills on its own."),
         Line::from(vec![

@@ -20,13 +20,15 @@ cargo run --release -- --join          # find games on this network
 cargo run --release -- --join TICKET   # join across the internet
 cargo run --release -- --demo          # watch eight bots
 cargo run --release -- --bots 7 --skill hard --ship weaver
+cargo run --release -- --arena hollow --bots 2   # the small arena
 ```
 
 You need a truecolour terminal with UTF-8, at least 60x20; 100x30 or bigger
 is better, and a bigger terminal shows more of the arena. Play is best in a
 terminal with the kitty keyboard protocol (kitty, WezTerm, foot, Ghostty and
 others). Elsewhere a terminal repeats only the last key held, so you cannot
-thrust, turn and fire at the same time.
+thrust, turn and fire at the same time. A gamepad avoids that in any
+terminal.
 
 ## Controls
 
@@ -44,6 +46,18 @@ thrust, turn and fire at the same time.
 | Esc | menu |
 | H or F1 | help |
 | F8 | sound on or off |
+
+Gamepad: left stick or d-pad flies (up thrusts, down brakes, sideways
+turns), right trigger fires, left trigger is the afterburner, A bomb, X
+mine, Y scores, B or Start menu, Back help. Pads from SDL's controller
+list are used; `TSPACE_ANY_PAD=1` accepts any.
+
+## Arenas
+
+- **Foundry:** 160x160 tiles, for up to eight. Corner bases, a ring in
+  the middle with pickups inside it.
+- **Hollow:** 96x72, for two to four. A corridor round the edge and a
+  hall in the middle.
 
 ## Ships
 
@@ -68,7 +82,9 @@ Pickups appear at fixed spots and come back after a while:
 ## Playing together
 
 One player hosts and the others join. There is no central server. The
-host runs the game, and bots keep the empty seats filled.
+host runs the game and picks the arena, and bots keep the empty seats
+filled. Each guest flies its own ship ahead of the host's updates, so
+steering feels immediate over the internet too.
 
 - **Same network:** the host picks *Host a game*. The others pick *Join a
   LAN game* and the host shows up in their list (UDP port 31459).

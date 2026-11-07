@@ -13,7 +13,8 @@ bouncing bombs, and the **Weaver** sows mines and fires shots that bounce
 off walls. Grab **Overcharge**, **Scatter**, **Shroud** and **Overdrive**
 from the arena floor. First pilot to 15 kills takes the match.
 
-Up to eight pilots fight in the Foundry. Bots fill the empty seats at
+Up to eight pilots fight in the Foundry, or two to four in the tighter
+Hollow. Bots fill the empty seats at
 three skill levels, or friends join you on the same network or across
 the internet with an invite ticket. One of you hosts, and no server is
 needed.
@@ -28,12 +29,17 @@ Every ship, spark and star is drawn in Braille dots.
   **Left** **Right**: turn
 - **Space**: guns, **F**: bomb, **X**: mine, **E**: afterburner
 - **1** to **4**: change ship; **Tab**: scores; **Esc**: menu; **H**: help
+- Gamepad: stick or d-pad flies (up thrusts, down brakes), right trigger
+  fires, left trigger burns, **A** bomb, **X** mine, **Y** scores,
+  **Start** menu
 
-Best in a terminal that reports key releases (kitty, foot, WezTerm,
-Ghostty and others), so you can thrust, turn and fire at once.
+On the keyboard, best in a terminal that reports key releases (kitty,
+foot, WezTerm, Ghostty and others), so you can thrust, turn and fire at
+once. A gamepad works anywhere.
 
 ## Options
 
 - `--play`: straight into a game against bots; `--demo`: watch them
 - `--host`, `--join`, `--join TICKET`: play together
-- `--bots N`, `--skill easy|medium|hard`, `--ship NAME`, `--mute`
+- `--arena foundry|hollow`, `--bots N`, `--skill easy|medium|hard`,
+  `--ship NAME`, `--mute`

@@ -10,11 +10,12 @@
 //! Comments (`# ` with a space) and `name:` come before the grid.
 //! `#` wall, `.` (or space) open, `S` spawn point, `*` pickup spot. Rows may
 //! differ in length; short rows are open to the right. Outside the grid is
-//! solid. `tools/gen_foundry.py` made the first arena; edit the text freely.
+//! solid. `tools/gen_arenas.py` made the built-in ones; edit the text freely.
 
 pub const TILE: f32 = 16.0;
 
-pub const BUILTIN: &[(&str, &str)] = &[("foundry", include_str!("../arenas/foundry.txt"))];
+/// The built-in arenas: id, text. `tools/gen_arenas.py` made them.
+pub const BUILTIN: &[(&str, &str)] = &[("foundry", include_str!("../arenas/foundry.txt")), ("hollow", include_str!("../arenas/hollow.txt"))];
 
 #[derive(Clone, Debug)]
 pub struct Arena {

@@ -10,7 +10,7 @@ new = true
 license = "MIT"
 repo = "theasciiverse/tspace"
 provenance = "Asciiverse made tspace in Rust in 2026, inspired by SubSpace (Burst / Virgin Interactive, 1997), with movement code adapted from Peter Kieltyka's Zubspace (MIT)."
-topics = ["action", "space", "shooter", "multiplayer", "lan", "bots", "braille", "rust"]
+topics = ["action", "space", "shooter", "multiplayer", "lan", "bots", "gamepad", "braille", "rust"]
 genre = "action"
 
 [developer]
@@ -29,8 +29,9 @@ rows = 20
 [requires]
 utf8 = true
 color = "truecolor"
+gamepad = true
 glyphs = ["braille"]
-system_deps = ["libasound2"]
+system_deps = ["libasound2", "libudev1"]
 
 # 100x30, `tspace --demo` (eight bots), scores card at about 28-33 s
 # (asciiverse/record-preview.sh)

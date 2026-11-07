@@ -350,26 +350,10 @@ impl World {
             return;
         }
 
-        let arena = &self.arena;
         let p = self.s.players[i].as_mut().unwrap();
         let st = p.kind.stats();
-        let input = PlayerMovementInput { thrust: c.thrust, reverse: c.reverse, rotate_left: c.left, rotate_right: c.right, afterburner_held: c.burn };
-        let state = PlayerMovementState { orientation: p.orient, velocity: MovementVector::new(p.vx, p.vy), energy: p.energy, max_energy: p.max_energy };
-        let out = zs::step_player_movement(state, input, p.kind.tuning(p.overdrive > 0.0), dt);
         let r = st.radius;
-        let col = zs::integrate_player_collision(MovementVector::new(p.x, p.y), out.state.velocity, dt, st.bounce, |pos, axis, d| {
-            zs::movement_axis_overlaps_blocked_tile(pos, r, arena.w, arena.h, TILE, axis, d, |tx, ty| arena.wall(tx, ty))
-        });
-        let vel = zs::truncate_movement_vector(col.velocity, out.top_speed);
-        (p.x, p.y, p.vx, p.vy) = (col.position.x, col.position.y, vel.x, vel.y);
-        p.orient = out.state.orientation;
-        p.energy = out.state.energy;
-        p.thrusting = out.applied_thrust != zs::AppliedThrust::None;
-        p.burning = out.afterburning;
-        for t in [&mut p.gun_cd, &mut p.bomb_cd, &mut p.guard, &mut p.scatter, &mut p.shroud, &mut p.overdrive] {
-            *t = (*t - dt).max(0.0);
-        }
-        if col.bounced && vel.length() > 60.0 {
+        if move_ship(&self.arena, p, c, dt) {
             self.events.push(Event::Bounce { who: i as u8 });
         }
 
@@ -590,6 +574,31 @@ impl World {
         self.events.push(Event::Died { who: j as u8, by: killer, x, y });
     }
 
+    /// A guest's prediction: fly its own ship one step, movement only
+    /// (weapons, damage and pickups stay the host's business).
+    pub fn fly(&mut self, slot: usize, c: Controls, dt: f32) {
+        if let Some(p) = self.s.players.get_mut(slot).and_then(Option::as_mut).filter(|p| p.alive) {
+            move_ship(&self.arena, p, c, dt);
+        }
+    }
+
+    /// A guest between frames: let everyone else and the shots coast.
+    pub fn coast(&mut self, except: usize, dt: f32) {
+        for (i, p) in self.s.players.iter_mut().enumerate() {
+            if let Some(p) = p.as_mut().filter(|p| p.alive && i != except) {
+                let (x, y) = (p.x + p.vx * dt, p.y + p.vy * dt);
+                if !self.arena.solid_at(x, y) {
+                    (p.x, p.y) = (x, y);
+                }
+            }
+        }
+        for s in self.s.shots.iter_mut() {
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+        }
+        self.s.time += dt;
+    }
+
     /// Players ranked for the scoreboard: kills, then fewer deaths.
     pub fn ranking(&self) -> Vec<usize> {
         let mut v: Vec<usize> = (0..MAX_PLAYERS).filter(|&i| self.s.players[i].is_some()).collect();
@@ -599,6 +608,29 @@ impl World {
         });
         v
     }
+}
+
+/// One step of a ship's flight: thrust, turn, energy, walls. True when it
+/// bounced hard enough to hear.
+fn move_ship(arena: &Arena, p: &mut Player, c: Controls, dt: f32) -> bool {
+    let st = p.kind.stats();
+    let input = PlayerMovementInput { thrust: c.thrust, reverse: c.reverse, rotate_left: c.left, rotate_right: c.right, afterburner_held: c.burn };
+    let state = PlayerMovementState { orientation: p.orient, velocity: MovementVector::new(p.vx, p.vy), energy: p.energy, max_energy: p.max_energy };
+    let out = zs::step_player_movement(state, input, p.kind.tuning(p.overdrive > 0.0), dt);
+    let r = st.radius;
+    let col = zs::integrate_player_collision(MovementVector::new(p.x, p.y), out.state.velocity, dt, st.bounce, |pos, axis, d| {
+        zs::movement_axis_overlaps_blocked_tile(pos, r, arena.w, arena.h, TILE, axis, d, |tx, ty| arena.wall(tx, ty))
+    });
+    let vel = zs::truncate_movement_vector(col.velocity, out.top_speed);
+    (p.x, p.y, p.vx, p.vy) = (col.position.x, col.position.y, vel.x, vel.y);
+    p.orient = out.state.orientation;
+    p.energy = out.state.energy;
+    p.thrusting = out.applied_thrust != zs::AppliedThrust::None;
+    p.burning = out.afterburning;
+    for t in [&mut p.gun_cd, &mut p.bomb_cd, &mut p.guard, &mut p.scatter, &mut p.shroud, &mut p.overdrive] {
+        *t = (*t - dt).max(0.0);
+    }
+    col.bounced && vel.length() > 60.0
 }
 
 #[cfg(test)]
@@ -719,6 +751,29 @@ mod tests {
         assert!(!p.alive && p.kind == Kind::Anvil && p.deaths == 0);
         run(&mut w, 2.0, &[]);
         assert!(w.player(0).unwrap().alive);
+    }
+
+    /// The guest's prediction: from the host's state at an acknowledged
+    /// input, replaying the later inputs lands exactly where the host is.
+    #[test]
+    fn replayed_inputs_match_the_host() {
+        let mut host = world_with(1);
+        run(&mut host, 1.0, &[]);
+        let pattern = |k: usize| Controls { thrust: k % 90 < 50, left: k % 140 < 30, right: (k + 70) % 140 < 25, burn: k % 200 < 20, ..Default::default() };
+        let mut snapshot = None;
+        for k in 0..600 {
+            if k == 400 {
+                snapshot = Some(host.s.clone());
+            }
+            host.step(1.0 / 60.0, &[pattern(k)]);
+        }
+        let mut guest = world_with(1);
+        guest.s = snapshot.unwrap();
+        for k in 400..600 {
+            guest.fly(0, pattern(k), 1.0 / 60.0);
+        }
+        let (h, g) = (host.player(0).unwrap(), guest.player(0).unwrap());
+        assert_eq!((h.x, h.y, h.vx, h.vy, h.orient), (g.x, g.y, g.vx, g.vy, g.orient));
     }
 
     #[test]
