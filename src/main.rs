@@ -41,6 +41,9 @@ In the game, H shows the controls.
                     or hollow (small, two to four)
   --teams           Red against Blue instead of everyone for themselves
   --bots N          bots in your games, 0-7 (default 5)
+                    (the title screen remembers arena, mode, bots, skill and
+                    ship in $XDG_CONFIG_HOME/tspace/settings.txt; options here
+                    override it for one run)
   --skill LEVEL     easy, medium or hard (default medium)
   --ship NAME       dart, lance, anvil or weaver (default lance)
   --mute            no sound
@@ -77,7 +80,7 @@ struct Args {
 
 fn parse_args() -> Result<Option<Args>, String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let mut a = Args { start: Start::Title, settings: Settings { arena: game::DEMO_ARENA, teams: false, bots: 5, level: bots::Level::Medium, ship: ships::Kind::Lance }, mute: false };
+    let mut a = Args { start: Start::Title, settings: Settings::load(), mute: false };
     let mut i = 0;
     let value = |i: usize, flag: &str| args.get(i + 1).filter(|v| !v.starts_with("--")).cloned().ok_or(format!("{flag} needs a value"));
     while i < args.len() {

@@ -105,6 +105,12 @@ steering feels immediate over the internet too.
   The connection uses [iroh](https://iroh.computer), which goes through a
   relay when a direct connection can't be made.
 
+## Settings
+
+The title screen remembers your arena, mode, bots, bot skill and ship in
+`~/.config/tspace/settings.txt` (`$XDG_CONFIG_HOME/tspace`). Command-line
+options override it for that run.
+
 ## Session log
 
 `$XDG_STATE_HOME/tspace/session.log` (by default

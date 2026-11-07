@@ -324,6 +324,11 @@ in the same folder.
   Ns" instead of an empty energy bar. A hit ship flashes white for 0.12 s (`Player::flash`, in
   the state, so guests see it); under a quarter energy the bar pulses and
   a double beep sounds once per dip (again after recovering past 40%).
+- **Settings:** the title's Arena, Mode, Bots, Bot skill and Ship are
+  saved on every change to `$XDG_CONFIG_HOME/tspace/settings.txt`
+  (`key = value`, unknown or bad values ignored) and loaded at start;
+  command-line options override them for the run (and are saved too if
+  the title menu is then touched).
 - **Input:** Panzer's rule. Exact with the kitty protocol, otherwise held
   keys are inferred from repeats. The game shows a tip in the first
   seconds when the protocol is missing and no pad is connected.
@@ -357,7 +362,7 @@ in the same folder.
 ## Verifying
 
 ```bash
-cargo test --release      # 30 tests: movement, arena, rules, teams, streaks, Repulsor, dodging, prediction replay, bots fight, frame size, tickets, sound, screens draw
+cargo test --release      # 31 tests: settings, movement, arena, rules, teams, streaks, Repulsor, dodging, prediction replay, bots fight, frame size, tickets, sound, screens draw
 cargo clippy --release
 cargo test --release balance -- --ignored --nocapture   # bots per ship, ~10 s
 ```

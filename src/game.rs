@@ -27,6 +27,20 @@ pub const TOAST_FOR: f32 = 4.0;
 /// Frames to guests every this many ticks (60 Hz / 2 = 30 Hz).
 const FRAME_EVERY: u64 = 2;
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn settings_round_trip() {
+        let s = Settings { arena: "lattice", teams: true, bots: 3, level: Level::Hard, ship: Kind::Weaver };
+        let back = Settings::parse(&s.to_text());
+        assert_eq!((back.arena, back.teams, back.bots, back.level, back.ship), ("lattice", true, 3, Level::Hard, Kind::Weaver));
+        let junk = Settings::parse("arena = nowhere\nbots = lots\nship=dart\n");
+        assert_eq!((junk.arena, junk.bots, junk.ship), (DEMO_ARENA, 5, Kind::Dart));
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Phase {
     Title,
@@ -59,6 +73,67 @@ pub struct Settings {
     pub bots: usize,
     pub level: Level,
     pub ship: Kind,
+}
+
+impl Default for Settings {
+    fn default() -> Settings {
+        Settings { arena: DEMO_ARENA, teams: false, bots: 5, level: Level::Medium, ship: Kind::Lance }
+    }
+}
+
+impl Settings {
+    /// `key = value` lines; unknown keys and bad values are skipped.
+    pub fn parse(text: &str) -> Settings {
+        let mut s = Settings::default();
+        for line in text.lines() {
+            let Some((k, v)) = line.split_once('=') else { continue };
+            let v = v.trim();
+            match k.trim() {
+                "arena" => {
+                    if let Some((id, _)) = crate::arena::BUILTIN.iter().find(|(id, _)| *id == v) {
+                        s.arena = id;
+                    }
+                }
+                "teams" => s.teams = v == "true",
+                "bots" => s.bots = v.parse::<usize>().map_or(s.bots, |n| n.min(MAX_PLAYERS - 1)),
+                "skill" => s.level = Level::ALL.into_iter().find(|l| l.name() == v).unwrap_or(s.level),
+                "ship" => s.ship = ships::ALL.into_iter().find(|k| k.stats().name.eq_ignore_ascii_case(v)).unwrap_or(s.ship),
+                _ => {}
+            }
+        }
+        s
+    }
+
+    pub fn to_text(&self) -> String {
+        format!(
+            "# tspace settings, written by the title screen\narena = {}\nteams = {}\nbots = {}\nskill = {}\nship = {}\n",
+            self.arena,
+            self.teams,
+            self.bots,
+            self.level.name(),
+            self.ship.stats().name.to_lowercase()
+        )
+    }
+
+    fn path() -> Option<std::path::PathBuf> {
+        let dir = std::env::var_os("XDG_CONFIG_HOME").map(std::path::PathBuf::from).or_else(|| std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))?.join("tspace");
+        Some(dir.join("settings.txt"))
+    }
+
+    /// The saved settings, or the defaults.
+    pub fn load() -> Settings {
+        Settings::path().and_then(|p| std::fs::read_to_string(p).ok()).map_or_else(Settings::default, |t| Settings::parse(&t))
+    }
+
+    pub fn save(&self) {
+        let Some(p) = Settings::path() else { return };
+        if let Some(dir) = p.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        if let Err(e) = std::fs::write(&p, self.to_text()) {
+            log::warn!("could not save settings to {}: {e}", p.display());
+        }
+    }
 }
 
 struct Remote {
@@ -405,6 +480,9 @@ impl Game {
         }
         if moved {
             audio.play(Sfx::Select, 0.5);
+            if (4..=8).contains(&self.menu) {
+                self.settings.save();
+            }
         }
         if cmds.contains(&Cmd::Back) {
             self.exit = true;
