@@ -358,7 +358,8 @@ otherwise.
 The Lattice (six bots, added later): Dart 0.82, Lance 1.33, Anvil 0.98,
 Weaver 0.86; left alone until people have played it.
 
-Checked 2026-11-07 in tmux at 100x30 (private socket `tmux -L tspace`):
+Checked 2026-11-07 in tmux at 100x30 and at the 60x20 minimum (help,
+credit line and kitty tip fitted to it), private socket `tmux -L tspace`:
 title, solo play, help, scores. Host plus a LAN guest plus a ticket
 guest, three processes on one machine over real iroh: joining, a guest's
 thrust reaching the host, the guest list, and a guest leaving. Not tried

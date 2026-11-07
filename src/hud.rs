@@ -41,8 +41,12 @@ pub fn draw(f: &mut Frame, g: &Game) {
         feed(f, g, view);
         status(f, g, Rect { y: full.height - 1, height: 1, ..full });
         if !g.exact_keys && g.time < 12.0 && !g.is_guest() && !g.spectate && !g.pad {
-            let hint = "Tip: a terminal with the kitty keyboard protocol lets you thrust, turn and fire at once";
-            let w = (hint.len() as u16).min(view.width);
+            let hint = if view.width >= 92 {
+                "Tip: a terminal with the kitty keyboard protocol lets you thrust, turn and fire at once"
+            } else {
+                "Tip: kitty, WezTerm, foot or Ghostty let you hold keys"
+            };
+            let w = (hint.chars().count() as u16).min(view.width);
             f.render_widget(Paragraph::new(hint).style(Style::default().fg(MUTED)), Rect { x: view.x + (view.width - w) / 2, y: view.y + view.height - 1, width: w, height: 1 });
         }
     }
@@ -283,7 +287,10 @@ fn title(f: &mut Frame, g: &Game, full: Rect) {
     };
     lines.push(hint_line(&blurb));
     let area = card(f, full, "tspace", lines.into_iter().map(|l| l.alignment(Alignment::Center)).collect(), ACCENT, 40);
-    let credit = format!("{} · inspired by SubSpace (1997) · movement code from Zubspace (MIT)", crate::game::version_string());
+    let mut credit = format!("{} · inspired by SubSpace (1997) · movement code from Zubspace (MIT)", crate::game::version_string());
+    if credit.chars().count() > full.width as usize {
+        credit = format!("tspace {} · after SubSpace · code from Zubspace", env!("CARGO_PKG_VERSION"));
+    }
     let w = (credit.chars().count() as u16).min(full.width);
     if area.y + area.height < full.height {
         f.render_widget(Paragraph::new(credit).style(Style::default().fg(MUTED).bg(INK)), Rect { x: full.x + (full.width - w) / 2, y: full.height - 1, width: w, height: 1 });
@@ -329,36 +336,29 @@ fn ticket(f: &mut Frame, g: &Game, full: Rect) {
 }
 
 fn help(f: &mut Frame, full: Rect) {
-    let k = |key: &str, what: &str| Line::from(vec![Span::styled(format!("{key:<16}"), Style::default().fg(ACCENT)), Span::raw(what.to_string())]);
+    // every line fits the 54 columns a 60-wide terminal leaves inside the card
+    let k = |key: &str, what: &str| Line::from(vec![Span::styled(format!("{key:<10}"), Style::default().fg(ACCENT)), Span::raw(what.to_string())]);
+    let p = |kind: PickupKind, what: &str| vec![Span::styled(kind.name().to_string(), Style::default().fg(pickup_colour(kind))), Span::raw(what.to_string())];
     let lines = vec![
         k("W  ↑", "thrust (no friction: you keep drifting)"),
         k("S  ↓", "reverse thrust, to brake"),
-        k("A D  ← →", "turn"),
+        k("A D ← →", "turn"),
         k("Space", "guns (hold)"),
         k("F", "bomb: blast damage"),
-        k("X", "mine: waits, then goes off near enemies"),
-        k("E", "afterburner (hold, with thrust): burns energy"),
-        k("1 2 3 4", "Dart, Lance, Anvil, Weaver (warps you out)"),
-        k("Tab", "scores (and the host's invite ticket)"),
+        k("X", "mine: goes off when enemies come near"),
+        k("E", "afterburner (hold, with thrust)"),
+        k("1 2 3 4", "Dart, Lance, Anvil, Weaver"),
+        k("Tab", "scores, and the host's invite ticket"),
         k("Esc", "menu · F8 sound · H this help"),
-        k("Gamepad", "stick flies · RT guns · LT burn · A bomb · X mine · Y scores"),
+        k("Gamepad", "stick · RT guns · LT burn · A bomb · X mine"),
         Line::from(""),
-        Line::from("Energy is your shield and your ammunition: it refills on its own."),
-        Line::from(vec![
-            Span::raw("Pickups: "),
-            Span::styled("Overcharge", Style::default().fg(pickup_colour(PickupKind::Overcharge))),
-            Span::raw(" more energy, "),
-            Span::styled("Scatter", Style::default().fg(pickup_colour(PickupKind::Scatter))),
-            Span::raw(" spread shot, "),
-            Span::styled("Shroud", Style::default().fg(pickup_colour(PickupKind::Shroud))),
-            Span::raw(" off radar, "),
-            Span::styled("Overdrive", Style::default().fg(pickup_colour(PickupKind::Overdrive))),
-            Span::raw(" speed."),
-        ]),
+        Line::from("Energy is shield and ammunition, and refills itself."),
+        Line::from([p(PickupKind::Overcharge, " more energy · "), p(PickupKind::Scatter, " spread shot")].concat()),
+        Line::from([p(PickupKind::Shroud, " off radar · "), p(PickupKind::Overdrive, " speed")].concat()),
         Line::from(""),
         hint_line("Esc or Enter closes this"),
     ];
-    card(f, full, "How to fly", lines, ACCENT, 72);
+    card(f, full, "How to fly", lines, ACCENT, 60);
 }
 
 #[cfg(test)]
