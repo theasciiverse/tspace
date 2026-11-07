@@ -393,7 +393,7 @@ in the same folder.
 ## Verifying
 
 ```bash
-cargo test --release      # 31 tests: settings, movement, arena, rules, teams, streaks, Repulsor, dodging, prediction replay, bots fight, frame size, tickets, sound, screens draw
+cargo test --release      # 32 tests: soak (every arena and mode, 3 bot minutes each), settings, movement, arena, rules, teams, streaks, Repulsor, dodging, prediction replay, bots fight, frame size, tickets, sound, screens draw
 cargo clippy --release
 cargo test --release balance -- --ignored --nocapture   # bots per ship, ~10 s
 ```

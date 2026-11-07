@@ -483,6 +483,45 @@ mod tests {
 }
 
 #[cfg(test)]
+mod soak {
+    use super::*;
+
+    /// Every arena, both modes, eight hard bots for three simulated
+    /// minutes each: no ship ever inside a wall or off the map, every
+    /// position finite, matches can end and restart.
+    #[test]
+    fn bots_play_every_arena_and_mode() {
+        for (n, (arena, _)) in crate::arena::BUILTIN.iter().enumerate() {
+            for teams in [false, true] {
+                let mut w = World::new(arena, 40 + n as u64);
+                w.set_teams(teams);
+                w.s.kill_limit = 6; // a few match ends along the way
+                let mut brains: Vec<Brain> = (0..8).map(|k| Brain::new(Level::Hard, 900 + k + n as u32 * 17)).collect();
+                for (k, b) in brains.iter_mut().enumerate() {
+                    let ship = b.pick_ship();
+                    w.add_player(NAMES[k].into(), true, ship);
+                }
+                let mut matches = 0;
+                for step in 0..60 * 180 {
+                    let c: Vec<Controls> = brains.iter_mut().enumerate().map(|(i, b)| b.think(&w, i, 1.0 / 60.0)).collect();
+                    w.step(1.0 / 60.0, &c);
+                    for e in w.events.drain(..) {
+                        if matches!(e, crate::world::Event::Won { .. } | crate::world::Event::TeamWon { .. }) {
+                            matches += 1;
+                        }
+                    }
+                    for p in w.s.players.iter().flatten().filter(|p| p.alive) {
+                        assert!(p.x.is_finite() && p.y.is_finite() && p.vx.is_finite() && p.vy.is_finite(), "{arena} step {step}: {} not finite", p.name);
+                        assert!(!w.arena.solid_at(p.x, p.y), "{arena} teams {teams} step {step}: {} inside a wall at {:.0},{:.0}", p.name, p.x, p.y);
+                    }
+                }
+                assert!(matches >= 1, "{arena} teams {teams}: no match ended in three minutes");
+            }
+        }
+    }
+}
+
+#[cfg(test)]
 mod balance {
     use super::*;
 
