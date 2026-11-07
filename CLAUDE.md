@@ -219,15 +219,18 @@ session log in `$XDG_STATE_HOME/tspace/session.log`.
 
 ## Open questions (David's to decide)
 
-- [~] Trademark checks, 2026-11-07, by web search only (TMview, EUIPO
+- [x] Trademark checks, 2026-11-07, by web search only (TMview, EUIPO
       eSearch and PRH's service refuse automated queries, so this needs
       a person to finish): no TSPACE mark found anywhere. Near marks in the
       US, none for games or software: T-SPACE, Volkswagen (cars, classes
       12/35/37, reg. 7362289); T-SPACE, Time Span Technology Shenzhen
       (kitchenware 21, reg. 6797805; clothing 25, reg. 7468702); TESPACE
-      (vehicle parts, pending). Still to do by hand: TMview
-      (tmdn.org/tmview, covers EUIPO and PRH) and USPTO search for
-      "tspace" and "t space" in classes 9 and 41.
+      (vehicle parts, pending). Also searched the web for a game, app or
+      games company called tspace / T-Space (Steam, itch.io, app stores):
+      none found. The University of Toronto's repository "TSpace" is the
+      one known other user, not in games. David, 2026-11-07: good
+      enough for now; a register search by hand (TMview for the EU and
+      PRH, USPTO; classes 9 and 41) only if it ever matters.
 - [x] Arenas: one first, our own text grids (2026-11-07)
 - [x] Ships: four of our own, more later (2026-11-07)
 - [x] Sound: synthesised at run time, as Panzer (2026-11-07)
