@@ -365,3 +365,42 @@ mod tests {
         assert!(kills >= 3, "only {kills} kills in two minutes");
     }
 }
+
+#[cfg(test)]
+mod balance {
+    use super::*;
+
+    /// A rough look at the ships, not a measurement: eight hard bots, two
+    /// of each ship, fixed ships, several five-minute matches; kills and
+    /// deaths per ship. `cargo test --release balance -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn balance() {
+        for arena in ["foundry", "hollow"] {
+            let mut kills = [0u32; 4];
+            let mut deaths = [0u32; 4];
+            let players = if arena == "hollow" { 4 } else { 8 };
+            for seed in 0..4u32 {
+                let mut w = World::new(arena, 100 + seed as u64);
+                let mut brains: Vec<Brain> = (0..players).map(|k| Brain::new(Level::Hard, 7 + seed * 31 + k as u32)).collect();
+                for k in 0..players {
+                    w.add_player(NAMES[k].into(), true, ships::ALL[k % 4]);
+                }
+                w.s.kill_limit = u32::MAX;
+                for _ in 0..60 * 300 {
+                    let c: Vec<Controls> = brains.iter_mut().enumerate().map(|(i, b)| Controls { ship: None, ..b.think(&w, i, 1.0 / 60.0) }).collect();
+                    w.step(1.0 / 60.0, &c);
+                    w.events.clear();
+                }
+                for (k, p) in w.s.players.iter().flatten().enumerate() {
+                    kills[k % 4] += p.kills;
+                    deaths[k % 4] += p.deaths;
+                }
+            }
+            println!("{arena}:");
+            for k in 0..4 {
+                println!("  {:<7} kills {:>4} deaths {:>4}  k/d {:.2}", ships::ALL[k].stats().name, kills[k], deaths[k], kills[k] as f32 / deaths[k].max(1) as f32);
+            }
+        }
+    }
+}

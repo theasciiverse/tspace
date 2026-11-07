@@ -334,7 +334,15 @@ in the same folder.
 ```bash
 cargo test --release      # 25 tests: movement, arena, rules, prediction replay, bots fight, frame size, tickets, sound
 cargo clippy --release
+cargo test --release balance -- --ignored --nocapture   # bots per ship, ~10 s
 ```
+
+The balance run is a smoke test, not a measurement: hard bots, two of
+each ship, four 5-minute matches per arena, kills and deaths per ship.
+2026-11-07: the Weaver came out at 0.44 k/d (others 1.06-1.47), so it
+got a little more energy, recharge, turn rate and gun. After that the
+Foundry runs 0.82-1.35 and the Hollow 0.95-1.03. Human play may say
+otherwise.
 
 Checked 2026-11-07 in tmux at 100x30 (private socket `tmux -L tspace`):
 title, solo play, help, scores. Host plus a LAN guest plus a ticket
