@@ -158,9 +158,15 @@ fn status(f: &mut Frame, g: &Game, area: Rect) {
         // low energy: the bar pulses
         Color::Rgb(120, 40, 36)
     };
-    spans.push(Span::styled("█".repeat(filled), Style::default().fg(colour)));
-    spans.push(Span::styled("░".repeat(bar_w - filled), Style::default().fg(dim(colour, 0.35))));
-    spans.push(Span::styled(format!(" {:>4}/{:<4} ", p.energy as i32, p.max_energy as i32), Style::default().fg(TEXT)));
+    if p.alive {
+        spans.push(Span::styled("█".repeat(filled), Style::default().fg(colour)));
+        spans.push(Span::styled("░".repeat(bar_w - filled), Style::default().fg(dim(colour, 0.35))));
+        spans.push(Span::styled(format!(" {:>4}/{:<4} ", p.energy as i32, p.max_energy as i32), Style::default().fg(TEXT)));
+    } else {
+        // the same width as the bar and its figures
+        let text = format!("down · back in {:.1}s", p.respawn.max(0.0));
+        spans.push(Span::styled(format!("{text:<31}"), Style::default().fg(WARN)));
+    }
     spans.push(Span::styled(format!(" K {} D {} ", p.kills, p.deaths), Style::default().fg(TEXT)));
     if g.world.s.teams {
         spans.extend(team_line(g).spans);
