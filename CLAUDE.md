@@ -293,7 +293,7 @@ in the same folder.
   ALPN `tspace/1`, LAN beacon on UDP 31459, torched-style tickets
   (`tspace` + base32 of the iroh address). The host emits its ticket
   once iroh is online (up to 8 s); LAN play needs no internet.
-- **Guest prediction (protocol 2; 3 adds the hit flash, 4 teams):** guests number their inputs
+- **Guest prediction (protocol 2; 3 adds the hit flash, 4 teams, 5 streaks):** guests number their inputs
   (`Msg::Input { seq, .. }`). The host queues each guest's inputs and
   applies one per tick (a backlog over 3 is caught up at once), and every
   frame carries `acks`, the last input applied per guest slot. The guest
@@ -309,6 +309,9 @@ in the same folder.
 - **Bots** (`src/bots.rs`, header lists the behaviour): lead the aim,
   keep a distance per ship, flee under 22% energy (medium and hard, with
   the odd mine dropped behind), burn on long trips, brake before walls.
+- **Streaks:** `Player::streak` counts kills since the last death; the
+  feed announces 3, 5, 8 and every 5 after, and who ended a streak of 3
+  or more (`Event::Streak`, `Event::StreakEnded`). Feed only, no score.
 - **Feel:** while you wait to respawn, the camera follows whoever shot
   you down (a real death, energy 0; a ship change keeps the camera
   home; checked in play 2026-11-07). The status bar says "down · back in
@@ -347,7 +350,7 @@ in the same folder.
 ## Verifying
 
 ```bash
-cargo test --release      # 27 tests: movement, arena, rules, teams, prediction replay, bots fight, frame size, tickets, sound, screens draw
+cargo test --release      # 28 tests: movement, arena, rules, teams, streaks, prediction replay, bots fight, frame size, tickets, sound, screens draw
 cargo clippy --release
 cargo test --release balance -- --ignored --nocapture   # bots per ship, ~10 s
 ```

@@ -633,11 +633,7 @@ impl Game {
                         Some(k) => format!("{} shot down {victim}", self.name_of(k)),
                         None => format!("{victim} blew up"),
                     };
-                    log::info!("feed: {line}");
-                    self.feed.push_back((line, self.time));
-                    while self.feed.len() > 5 {
-                        self.feed.pop_front();
-                    }
+                    self.feed_line(line);
                 }
                 Event::MineSet { who } => {
                     if who as usize == me {
@@ -655,6 +651,17 @@ impl Game {
                         audio.play(Sfx::Spawn, 0.6);
                     }
                 }
+                Event::Streak { who, n } => {
+                    let line = format!("{} is on a streak of {n}!", self.name_of(who));
+                    self.feed_line(line);
+                }
+                Event::StreakEnded { who, by, n } => {
+                    let line = match by {
+                        Some(k) => format!("{} ended {}'s streak of {n}", self.name_of(k), self.name_of(who)),
+                        None => format!("{}'s streak of {n} is over", self.name_of(who)),
+                    };
+                    self.feed_line(line);
+                }
                 Event::TeamWon { team } => {
                     audio.play(Sfx::Win, 0.9);
                     let line = format!("{} team wins the match!", crate::world::TEAM_NAMES[team as usize % 2]);
@@ -666,6 +673,14 @@ impl Game {
                     self.feed.push_back((line, self.time));
                 }
             }
+        }
+    }
+
+    fn feed_line(&mut self, line: String) {
+        log::info!("feed: {line}");
+        self.feed.push_back((line, self.time));
+        while self.feed.len() > 5 {
+            self.feed.pop_front();
         }
     }
 

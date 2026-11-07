@@ -96,6 +96,8 @@ pub struct Player {
     pub last_hit: Option<u8>,
     /// 0 or 1 in a team game (unused in free-for-all).
     pub team: u8,
+    /// Kills since this player last died.
+    pub streak: u32,
     /// Seconds of the white flash after a hit.
     pub flash: f32,
 }
@@ -128,6 +130,7 @@ impl Player {
             last_hit: None,
             flash: 0.0,
             team: 0,
+            streak: 0,
         }
     }
 
@@ -194,6 +197,10 @@ pub enum Event {
     Spawn { who: u8 },
     Won { who: u8 },
     TeamWon { team: u8 },
+    /// A kill streak reached 3, 5, 8, then every 5 more.
+    Streak { who: u8, n: u32 },
+    /// A streak of 3 or more ended by `by` (None: blew up).
+    StreakEnded { who: u8, by: Option<u8>, n: u32 },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -342,6 +349,7 @@ impl World {
         for p in self.s.players.iter_mut().flatten() {
             p.kills = 0;
             p.deaths = 0;
+            p.streak = 0;
             p.alive = false;
             p.respawn = 0.5;
         }
@@ -616,13 +624,26 @@ impl World {
         if !over {
             p.deaths += 1;
         }
+        let ended = std::mem::take(&mut p.streak);
         let (x, y) = (p.x, p.y);
         let killer = (by as usize != j).then_some(by);
+        let mut streak = None;
         if let Some(k) = killer.and_then(|k| self.s.players.get_mut(k as usize)).and_then(Option::as_mut)
-            && !over {
-                k.kills += 1;
+            && !over
+        {
+            k.kills += 1;
+            k.streak += 1;
+            if matches!(k.streak, 3 | 5 | 8) || (k.streak > 8 && k.streak % 5 == 0) {
+                streak = Some(k.streak);
             }
+        }
         self.events.push(Event::Died { who: j as u8, by: killer, x, y });
+        if ended >= 3 && !over {
+            self.events.push(Event::StreakEnded { who: j as u8, by: killer, n: ended });
+        }
+        if let (Some(n), Some(k)) = (streak, killer) {
+            self.events.push(Event::Streak { who: k, n });
+        }
     }
 
     /// A guest's prediction: fly its own ship one step, movement only
@@ -853,6 +874,24 @@ mod tests {
         // the blast spares the teammate standing on it
         assert!(!w.player(1).unwrap().alive && w.player(2).unwrap().alive);
         assert_eq!(w.team_kills(0), 1);
+    }
+
+    #[test]
+    fn streaks_are_announced_and_ended() {
+        let mut w = world_with(3);
+        run(&mut w, 1.0, &[]);
+        let mut events = Vec::new();
+        for _ in 0..3 {
+            w.s.players[1].as_mut().unwrap().guard = 0.0;
+            w.damage(1, 99999.0, 0);
+            events.extend(w.events.drain(..));
+            w.s.players[1].as_mut().unwrap().alive = true;
+        }
+        assert!(events.contains(&Event::Streak { who: 0, n: 3 }));
+        w.s.players[0].as_mut().unwrap().guard = 0.0;
+        w.damage(0, 99999.0, 2);
+        assert!(w.events.contains(&Event::StreakEnded { who: 0, by: Some(2), n: 3 }));
+        assert_eq!(w.player(0).unwrap().streak, 0);
     }
 
     #[test]
