@@ -5,7 +5,8 @@ public beta 1996, released 1997), the zero-friction multiplayer space
 shooter, drawn in Braille in the terminal. It is built on the MIT code of
 **Zubspace**, Peter Kieltyka's Rust remake of SubSpace for the browser.
 
-**Status:** 2026-11-08: v0.3.0 tagged and in `hub/catalog` (team mode,
+**Status:** 2026-11-08: v0.3.0 released (six platforms), repo public, in
+the live catalog (team mode,
 Lattice, Repulsor, smarter bots on top of 0.2.0's gamepad, guest
 prediction and Hollow). Bots, LAN and ticket play, sound, HUD, demo mode
 and preview cast are all in (phases and release notes in `ROADMAP.md`).
