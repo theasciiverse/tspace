@@ -5,10 +5,11 @@ public beta 1996, released 1997), the zero-friction multiplayer space
 shooter, drawn in Braille in the terminal. It is built on the MIT code of
 **Zubspace**, Peter Kieltyka's Rust remake of SubSpace for the browser.
 
-**Status:** 2026-11-07: v0.1.0 playable and pushed; v0.2.0 adds gamepad, guest
-prediction and a second arena (Hollow) added. Bots,
-LAN and ticket play, sound, HUD, demo mode and preview cast are all in
-(phases in `ROADMAP.md`). Licence MIT (2026-11-07). 2026-10-27: folder and notes only.
+**Status:** 2026-11-08: v0.3.0 tagged and in `hub/catalog` (team mode,
+Lattice, Repulsor, smarter bots on top of 0.2.0's gamepad, guest
+prediction and Hollow). Bots, LAN and ticket play, sound, HUD, demo mode
+and preview cast are all in (phases and release notes in `ROADMAP.md`).
+Licence MIT (2026-11-07). 2026-10-27: folder and notes only.
 
 ## Name
 
@@ -169,8 +170,8 @@ each tested, documented and pushed to main:
   bots must take pickups, LAN host plus guest re-run after the protocol
   changes. Preview cast re-recorded as a team demo.
 
-Protocol is now 6 (any of these changes breaks older copies). Cargo
-version still 0.2.0; no tag or release. Still needs people: play-testing
+Protocol is now 6 (any of these changes breaks older copies). Released
+as v0.3.0 on 2026-11-08. Still needs people: play-testing
 (feel, ship balance, bot strength), a real gamepad, an internet join
 between two networks.
 

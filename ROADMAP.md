@@ -30,3 +30,28 @@ All eight phases built on 2026-11-07 as v0.1.0; play-testing comes next.
 - More ships, arenas and pickups
 - [x] Team mode, Red against Blue (2026-11-07)
 - zubspace.gg backend, only with Peter's agreement
+
+## 0.1.0: built
+
+- Four ships, guns, bombs, mines and four pickups in the Foundry
+- Bots at three skill levels
+- LAN and internet play: one player hosts, bots fill the empty seats
+- Radar, scores, help, sound and a demo mode
+
+## 0.2.0: built
+
+- Gamepad
+- Guests fly their own ship ahead of the host's updates, so steering
+  feels immediate over the internet
+- A second arena, the Hollow, for two to four
+
+## 0.3.0: built
+
+- Team mode: Red against Blue, no friendly fire, first team to 25
+- A third arena, the Lattice: a field of pillars for four to six
+- A fifth pickup, the Repulsor: a shockwave that shoves enemies away and
+  wipes out their shots and mines
+- Bots flee when low, use the afterburner and dodge shots
+- Hit flash, low-energy warning, kill streaks, and the camera follows
+  your killer while you wait to fly again
+- The title remembers your settings and pilot name
