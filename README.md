@@ -3,7 +3,8 @@
 Zero-friction arena dogfights in the terminal, drawn in Braille. Up to
 eight pilots, people or bots, in one arena. Your ship keeps every bit of
 momentum you give it and bounces off the walls. Your energy is your shield
-and your ammunition at once. First to 15 kills wins the match.
+and your ammunition at once. First to 15 kills wins the match, or Red
+and Blue race to 25 as teams.
 
 Inspired by SubSpace (Burst / Virgin Interactive, 1997). tspace is its own
 game, with its own ships, arenas, art, sound and numbers. Its movement code
